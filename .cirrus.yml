@@ -1,0 +1,64 @@
+---
+# NOTE: That didn't work, thus use of instance with nested virtualization enabled.
+#
+# container:
+#   image: ubuntu:20.04
+#   kvm: true
+
+compute_engine_instance:
+  image_project: cirrus-images
+  image: family/docker-kvm
+  platform: linux
+  cpu: 4
+  memory: 16G
+  disk: 100
+  nested_virtualization: true
+
+# environment variables
+
+env:
+  DEBIAN_FRONTEND: noninteractive
+  HOME: "$CIRRUS_WORKING_DIR"
+  PACKER_TMP_DIR: "$CIRRUS_WORKING_DIR/.packer.d"
+  S3CMD_ACCESS_KEY: "ENCRYPTED[4c8e879960a2378a4f37a05b8a70455c144927e4859402136244aeb41d6ccd5fbde2f23371b6908637fd2dcf7d58f2c7]"
+  S3CMD_BUCKET: "ENCRYPTED[488ce0692d9194d5e716f9ef89e50dc893ece37d16a13fbc465502a214e94a7e505913cd1897b4cc5bc3e4137803bacf]"
+  S3CMD_HOST: "ENCRYPTED[eb9ef87cec43aa95ed3f02aab81d1806fa509c971388feaca0bffe81683d252296d49196d69017ad15b5f9e35f74e9e0]"
+  S3CMD_SECRET_KEY: "ENCRYPTED[93202cd02e670f69b7d528b4125bac5b4704835d919f057d163a1f6cb25ff47aae2a9c9cf1af21fb9eee9c2a82efc076]"
+
+# task templates
+
+build_task_template: &BUILD_TASK_TEMPLATE
+  install_script:
+    - apt-get update
+    - apt-get install -y qemu-kvm curl git software-properties-common make python3-pip patch lftp s3cmd
+    - curl -fsSL https://apt.releases.hashicorp.com/gpg | apt-key add -
+    - apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com focal main"
+    - apt-add-repository --yes --update ppa:ansible/ansible
+    - apt-get install -y packer ansible
+
+  submodules_script:
+    - git submodule init
+    - git submodule update
+
+  build_script: cd image-builder/images/capi && make build-qemu-ubuntu-2004
+
+  push_script:
+    - s3cmd --configure --host="$S3CMD_HOST" --host-bucket="%(bucket)s.$S3CMD_HOST" --access_key="$S3CMD_ACCESS_KEY" --secret_key="$S3CMD_SECRET_KEY" --dump-config 2>&1 > /tmp/cirrus-ci-build/.s3cfg
+    - cd image-builder/images/capi/output && s3cmd sync . "s3://$S3CMD_BUCKET"
+
+# tasks
+
+build_118_task:
+  << : *BUILD_TASK_TEMPLATE
+  env:
+    PACKER_VAR_FILES: ../../../extra_vars_118.json
+
+build_119_task:
+  << : *BUILD_TASK_TEMPLATE
+  env:
+    PACKER_VAR_FILES: ../../../extra_vars_119.json
+
+build_120_task:
+  << : *BUILD_TASK_TEMPLATE
+  env:
+    PACKER_VAR_FILES: ../../../extra_vars_120.json
