@@ -1,0 +1,6 @@
+{
+  "goss_version": "0.3.16",
+  "kubernetes_deb_version": "1.21.0-00",
+  "kubernetes_semver": "v1.21.0",
+  "kubernetes_series": "v1.21"
+}

@@ -62,3 +62,8 @@ build_120_task:
   << : *BUILD_TASK_TEMPLATE
   env:
     PACKER_VAR_FILES: ../../../extra_vars_120.json
+
+build_121_task:
+  << : *BUILD_TASK_TEMPLATE
+  env:
+    PACKER_VAR_FILES: ../../../extra_vars_121.json
