@@ -1,0 +1,37 @@
+---
+name: Update image-builder submodule
+
+"on":
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/update-image-builder-submodule.yml
+  schedule:
+    - cron: "0 * * * *"
+  repository_dispatch:
+    types:
+      - update-image-builder-submodule
+
+jobs:
+
+  update-image-builder-submodule:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - uses: technote-space/create-pr-action@v2
+        with:
+          EXECUTE_COMMANDS: |
+            git submodule update --remote
+          COMMIT_EMAIL: 'bot@23technologies.cloud'
+          COMMIT_MESSAGE: |
+            chore: update image-builder submodule
+            Signed-off-by: 23 Technologies Bot <bot@23technologies.cloud>
+          COMMIT_NAME: '23 Technologies Bot'
+          ONLY_DEFAULT_BRANCH: true
+          PR_BRANCH_NAME: 'update-image-builder-submodule'
+          PR_BRANCH_PREFIX: 'chore/'
+          PR_TITLE: 'chore: update image-builder submodule'
