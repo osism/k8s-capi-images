@@ -1,0 +1,10 @@
+---
+extends: default
+
+rules:
+  line-length:
+    max: 200
+  comments: enable
+
+ignore: |
+  image-builder/

@@ -53,21 +53,21 @@ build_task_template: &BUILD_TASK_TEMPLATE
 # tasks
 
 build_118_task:
-  << : *BUILD_TASK_TEMPLATE
+  <<: *BUILD_TASK_TEMPLATE
   env:
     PACKER_VAR_FILES: ../../../extra_vars_118.json
 
 build_119_task:
-  << : *BUILD_TASK_TEMPLATE
+  <<: *BUILD_TASK_TEMPLATE
   env:
     PACKER_VAR_FILES: ../../../extra_vars_119.json
 
 build_120_task:
-  << : *BUILD_TASK_TEMPLATE
+  <<: *BUILD_TASK_TEMPLATE
   env:
     PACKER_VAR_FILES: ../../../extra_vars_120.json
 
 build_121_task:
-  << : *BUILD_TASK_TEMPLATE
+  <<: *BUILD_TASK_TEMPLATE
   env:
     PACKER_VAR_FILES: ../../../extra_vars_121.json
