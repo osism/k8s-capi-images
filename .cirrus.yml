@@ -40,11 +40,15 @@ build_task_template: &BUILD_TASK_TEMPLATE
     - git submodule init
     - git submodule update
 
-  build_script: cd image-builder/images/capi && make build-qemu-ubuntu-2004
+  build_script:
+    - cd image-builder/images/capi
+    - make build-qemu-ubuntu-2004
 
   push_script:
     - s3cmd --configure --host="$S3CMD_HOST" --host-bucket="%(bucket)s.$S3CMD_HOST" --access_key="$S3CMD_ACCESS_KEY" --secret_key="$S3CMD_SECRET_KEY" --dump-config 2>&1 > /tmp/cirrus-ci-build/.s3cfg
-    - cd image-builder/images/capi/output && s3cmd sync . "s3://$S3CMD_BUCKET"
+    - cd image-builder/images/capi/output
+    - find . -type f -execdir bash -c 'x={}; mv $x ${x%.*}' \;
+    - s3cmd sync . "s3://$S3CMD_BUCKET"
 
 # tasks
 
