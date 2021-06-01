@@ -54,20 +54,24 @@ build_task_template: &BUILD_TASK_TEMPLATE
 
 build_118_task:
   <<: *BUILD_TASK_TEMPLATE
+  skip: "!changesInclude('extra_vars_118.json')"
   env:
     PACKER_VAR_FILES: ../../../extra_vars_118.json
 
 build_119_task:
   <<: *BUILD_TASK_TEMPLATE
+  skip: "!changesInclude('extra_vars_119.json')"
   env:
     PACKER_VAR_FILES: ../../../extra_vars_119.json
 
 build_120_task:
   <<: *BUILD_TASK_TEMPLATE
+  skip: "!changesInclude('extra_vars_120.json')"
   env:
     PACKER_VAR_FILES: ../../../extra_vars_120.json
 
 build_121_task:
   <<: *BUILD_TASK_TEMPLATE
+  skip: "!changesInclude('extra_vars_121.json')"
   env:
     PACKER_VAR_FILES: ../../../extra_vars_121.json
