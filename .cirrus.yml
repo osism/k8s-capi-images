@@ -48,7 +48,7 @@ build_task_template: &BUILD_TASK_TEMPLATE
     - s3cmd --configure --host="$S3CMD_HOST" --host-bucket="%(bucket)s.$S3CMD_HOST" --access_key="$S3CMD_ACCESS_KEY" --secret_key="$S3CMD_SECRET_KEY" --dump-config 2>&1 > /tmp/cirrus-ci-build/.s3cfg
     - cd image-builder/images/capi/output
     - find . -type f -execdir bash -c 'x={}; mv $x ${x%.*}' \;
-    - s3cmd sync . "s3://$S3CMD_BUCKET"
+    - s3cmd --acl-public sync . "s3://$S3CMD_BUCKET"
 
 # tasks
 
