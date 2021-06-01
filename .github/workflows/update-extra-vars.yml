@@ -1,0 +1,41 @@
+---
+name: Update extra_vars_X.json versions
+
+"on":
+  workflow_dispatch:
+  schedule:
+    - cron: "0 * * * *"
+
+jobs:
+  update-extra-vars:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+
+      - name: Setup python 3.9
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+
+      - name: Install ruaeml.yaml
+        run: pip3 install ruamel.yaml
+
+      - uses: technote-space/create-pr-action@v2
+        with:
+          EXECUTE_COMMANDS: |
+            for i in $(echo extra_vars_*.json); do
+              python3 src/update-extra-vars.py $i;
+            done
+          COMMIT_EMAIL: 'bot@23technologies.cloud'
+          COMMIT_MESSAGE: |
+            chore: update extra_vars_X.json
+            Signed-off-by: 23 Technologies Bot <bot@23technologies.cloud>
+          COMMIT_NAME: '23 Technologies Bot'
+          ONLY_DEFAULT_BRANCH: true
+          PR_BRANCH_NAME: 'update-extra-vars'
+          PR_BRANCH_PREFIX: 'chore/'
+          PR_TITLE: 'chore: update extra-vars'
+
+      - name: Output extra_vars_X.json
+        run: for i in $(echo extra_vars_*.json); do cat $i; done
