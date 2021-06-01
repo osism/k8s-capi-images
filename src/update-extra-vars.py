@@ -95,8 +95,8 @@ def update_version(data):
 
     # check if we really found a match
     if not new_version == "v0.0.0":
-        # e.g. v1.18.1-00
-        data['kubernetes_deb_version'] = new_version + "-00"
+        # e.g. 1.18.1-00
+        data['kubernetes_deb_version'] = new_version[1:] + "-00"
         # e.g. v1.18.1
         data['kubernetes_semver'] = new_version
         # e.g. v1.18
@@ -108,8 +108,9 @@ def update_version(data):
 
 
 def dump_file(file, data):
-    with open(file, 'w') as json_dump_file:
-        json.dump(data, json_dump_file)
+    with open(file, 'w') as fp:
+        json.dump(data, fp, indent=4, sort_keys=True)
+        fp.write("\n")
 
 
 ###############################################################################
