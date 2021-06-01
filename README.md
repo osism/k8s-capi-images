@@ -3,6 +3,9 @@
 Images intended for use with Kubernetes CAPI providers. More details on
 https://image-builder.sigs.k8s.io/capi/capi.html.
 
+The images are built with the [Image Builder](https://github.com/kubernetes-sigs/image-builder/),
+a collection of cross-provider Kubernetes virtual machine image building utilities.
+
 ## Available images
 
 The images contain the latest stable releases, which are updated as required. This means
