@@ -24,12 +24,11 @@ jobs:
       - uses: technote-space/create-pr-action@v2
         with:
           EXECUTE_COMMANDS: |
-            for i in $(echo extra_vars_*.json); do
-              python3 src/update-extra-vars.py $i;
-            done
+            ./scripts/run-update-extra-vars.sh
           COMMIT_EMAIL: 'bot@23technologies.cloud'
           COMMIT_MESSAGE: |
             chore: update extra_vars_X.json
+
             Signed-off-by: 23 Technologies Bot <bot@23technologies.cloud>
           COMMIT_NAME: '23 Technologies Bot'
           ONLY_DEFAULT_BRANCH: true
