@@ -52,26 +52,26 @@ build_openstack_task_template: &BUILD_OPENSTACK_TASK_TEMPLATE
 
 # tasks
 
-build_openstack_118_task:
+build_openstack_ubuntu_118_task:
   <<: *BUILD_OPENSTACK_TASK_TEMPLATE
-  skip: "!changesInclude('extra_vars_openstack_118.json')"
+  skip: "!changesInclude('extra_vars_openstack_ubuntu_118.json')"
   env:
-    PACKER_VAR_FILES: ../../../extra_vars_openstack_118.json
+    PACKER_VAR_FILES: ../../../extra_vars_openstack_ubuntu_118.json
 
-build_openstack_119_task:
+build_openstack_ubuntu_119_task:
   <<: *BUILD_OPENSTACK_TASK_TEMPLATE
-  skip: "!changesInclude('extra_vars_openstack_119.json')"
+  skip: "!changesInclude('extra_vars_openstack_ubuntu_119.json')"
   env:
-    PACKER_VAR_FILES: ../../../extra_vars_openstack_119.json
+    PACKER_VAR_FILES: ../../../extra_vars_openstack_ubuntu_119.json
 
-build_openstack_120_task:
+build_openstack_ubuntu_120_task:
   <<: *BUILD_OPENSTACK_TASK_TEMPLATE
-  skip: "!changesInclude('extra_vars_openstack_120.json')"
+  skip: "!changesInclude('extra_vars_openstack_ubuntu_120.json')"
   env:
-    PACKER_VAR_FILES: ../../../extra_vars_openstack_120.json
+    PACKER_VAR_FILES: ../../../extra_vars_openstack_ubuntu_120.json
 
-build_openstack_121_task:
+build_openstack_ubuntu_121_task:
   <<: *BUILD_OPENSTACK_TASK_TEMPLATE
-  skip: "!changesInclude('extra_vars_openstack_121.json')"
+  skip: "!changesInclude('extra_vars_openstack_ubuntu_121.json')"
   env:
-    PACKER_VAR_FILES: ../../../extra_vars_openstack_121.json
+    PACKER_VAR_FILES: ../../../extra_vars_openstack_ubuntu_121.json
