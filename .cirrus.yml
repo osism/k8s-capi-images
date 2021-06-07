@@ -27,10 +27,10 @@ env:
 
 # task templates
 
-build_openstack_task_template: &BUILD_OPENSTACK_TASK_TEMPLATE
+build_task_template: &BUILD_TASK_TEMPLATE
   install_script:
     - apt-get update
-    - apt-get install -y qemu-kvm curl git software-properties-common make python3-pip patch lftp s3cmd
+    - apt-get install -y qemu-kvm curl git software-properties-common make s3cmd
     - curl -fsSL https://apt.releases.hashicorp.com/gpg | apt-key add -
     - apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com focal main"
     - apt-add-repository --yes --update ppa:ansible/ansible
@@ -40,38 +40,52 @@ build_openstack_task_template: &BUILD_OPENSTACK_TASK_TEMPLATE
     - git submodule init
     - git submodule update
 
-  build_script:
-    - cd image-builder/images/capi
-    - make build-qemu-ubuntu-2004
-
   push_script:
     - s3cmd --configure --host="$S3CMD_HOST" --host-bucket="%(bucket)s.$S3CMD_HOST" --access_key="$S3CMD_ACCESS_KEY" --secret_key="$S3CMD_SECRET_KEY" --dump-config 2>&1 > /tmp/cirrus-ci-build/.s3cfg
     - cd image-builder/images/capi/output
     - find . -type f -execdir bash -c 'x={}; mv $x ${x%.*}' \;
     - s3cmd --acl-public sync . "s3://$S3CMD_BUCKET"
 
+build_openstack_flatcar_task_template: &BUILD_OPENSTACK_FLATCAR_TASK_TEMPLATE
+  <<: *BUILD_TASK_TEMPLATE
+  build_script:
+    - cd image-builder/images/capi
+    - make build-qemu-flatcar
+
+build_openstack_ubuntu_task_template: &BUILD_OPENSTACK_UBUNTU_TASK_TEMPLATE
+  <<: *BUILD_TASK_TEMPLATE
+  build_script:
+    - cd image-builder/images/capi
+    - make build-qemu-ubuntu-2004
+
 # tasks
 
-build_openstack_118_task:
-  <<: *BUILD_OPENSTACK_TASK_TEMPLATE
-  skip: "!changesInclude('extra_vars_openstack_118.json')"
+build_openstack_ubuntu_118_task:
+  <<: *BUILD_OPENSTACK_UBUNTU_TASK_TEMPLATE
+  skip: "!changesInclude('extra_vars_openstack_ubuntu_118.json')"
   env:
-    PACKER_VAR_FILES: ../../../extra_vars_openstack_118.json
+    PACKER_VAR_FILES: ../../../extra_vars_openstack_ubuntu_118.json
 
-build_openstack_119_task:
-  <<: *BUILD_OPENSTACK_TASK_TEMPLATE
-  skip: "!changesInclude('extra_vars_openstack_119.json')"
+build_openstack_ubuntu_119_task:
+  <<: *BUILD_OPENSTACK_UBUNTU_TASK_TEMPLATE
+  skip: "!changesInclude('extra_vars_openstack_ubuntu_119.json')"
   env:
-    PACKER_VAR_FILES: ../../../extra_vars_openstack_119.json
+    PACKER_VAR_FILES: ../../../extra_vars_openstack_ubuntu_119.json
 
-build_openstack_120_task:
-  <<: *BUILD_OPENSTACK_TASK_TEMPLATE
-  skip: "!changesInclude('extra_vars_openstack_120.json')"
+build_openstack_ubuntu_120_task:
+  <<: *BUILD_OPENSTACK_UBUNTU_TASK_TEMPLATE
+  skip: "!changesInclude('extra_vars_openstack_ubuntu_120.json')"
   env:
-    PACKER_VAR_FILES: ../../../extra_vars_openstack_120.json
+    PACKER_VAR_FILES: ../../../extra_vars_openstack_ubuntu_120.json
 
-build_openstack_121_task:
-  <<: *BUILD_OPENSTACK_TASK_TEMPLATE
-  skip: "!changesInclude('extra_vars_openstack_121.json')"
+build_openstack_ubuntu_121_task:
+  <<: *BUILD_OPENSTACK_UBUNTU_TASK_TEMPLATE
+  skip: "!changesInclude('extra_vars_openstack_ubuntu_121.json')"
   env:
-    PACKER_VAR_FILES: ../../../extra_vars_openstack_121.json
+    PACKER_VAR_FILES: ../../../extra_vars_openstack_ubuntu_121.json
+
+build_openstack_flatcar_121_task:
+  <<: *BUILD_OPENSTACK_FLATCAR_TASK_TEMPLATE
+  skip: "!changesInclude('extra_vars_openstack_flatcar_121.json')"
+  env:
+    PACKER_VAR_FILES: ../../../extra_vars_openstack_flatcar_121.json

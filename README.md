@@ -13,7 +13,13 @@ that the image for version `1.21` contains, for example, version `1.21.1`.
 
 ### OpenStack
 
+#### Ubuntu
+
 * https://kubernetes-capi-images.fra1.digitaloceanspaces.com/ubuntu-2004-kube-v1.18/ubuntu-2004-kube-v1.18
 * https://kubernetes-capi-images.fra1.digitaloceanspaces.com/ubuntu-2004-kube-v1.19/ubuntu-2004-kube-v1.19
 * https://kubernetes-capi-images.fra1.digitaloceanspaces.com/ubuntu-2004-kube-v1.20/ubuntu-2004-kube-v1.20
 * https://kubernetes-capi-images.fra1.digitaloceanspaces.com/ubuntu-2004-kube-v1.21/ubuntu-2004-kube-v1.21
+
+#### Flatcar
+
+* https://kubernetes-capi-images.fra1.digitaloceanspaces.com/flatcar-kube-v1.21/flatcar-kube-v1.21
