@@ -36,6 +36,3 @@ jobs:
           PR_BRANCH_NAME: 'update-extra-vars'
           PR_BRANCH_PREFIX: 'chore/'
           PR_TITLE: 'chore: update extra-vars'
-
-      - name: Output extra_vars_X.json
-        run: for i in $(echo extra_vars_*.json); do cat $i; done
