@@ -92,8 +92,8 @@ build_openstack_flatcar_task:
     - git submodule update
 
   build_script:
-    - cd image-builder/images/capi
     - source extra_vars_openstack_flatcar.env
+    - cd image-builder/images/capi
     - make build-qemu-flatcar
 
   push_script:
