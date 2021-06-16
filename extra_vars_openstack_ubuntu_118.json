@@ -1,7 +1,7 @@
 {
     "goss_version": "0.3.16",
-    "kubernetes_deb_version": "1.18.19-00",
-    "kubernetes_semver": "v1.18.19",
+    "kubernetes_deb_version": "1.18.20-00",
+    "kubernetes_semver": "v1.18.20",
     "kubernetes_series": "v1.18",
     "output_directory": "./output/{{user `build_name`}}-kube-{{user `kubernetes_series`}}"
 }
