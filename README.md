@@ -19,5 +19,3 @@ that the image for version `1.21` contains, for example, version `1.21.1`.
 * https://kubernetes-capi-images.fra1.digitaloceanspaces.com/ubuntu-2004-kube-v1.19/ubuntu-2004-kube-v1.19
 * https://kubernetes-capi-images.fra1.digitaloceanspaces.com/ubuntu-2004-kube-v1.20/ubuntu-2004-kube-v1.20
 * https://kubernetes-capi-images.fra1.digitaloceanspaces.com/ubuntu-2004-kube-v1.21/ubuntu-2004-kube-v1.21
-
-#### Flatcar
