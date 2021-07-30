@@ -20,21 +20,22 @@ env:
   DEBIAN_FRONTEND: noninteractive
   HOME: "$CIRRUS_WORKING_DIR"
   PACKER_TMP_DIR: "$CIRRUS_WORKING_DIR/.packer.d"
-  S3CMD_ACCESS_KEY: "ENCRYPTED[4c8e879960a2378a4f37a05b8a70455c144927e4859402136244aeb41d6ccd5fbde2f23371b6908637fd2dcf7d58f2c7]"
-  S3CMD_BUCKET: "ENCRYPTED[488ce0692d9194d5e716f9ef89e50dc893ece37d16a13fbc465502a214e94a7e505913cd1897b4cc5bc3e4137803bacf]"
-  S3CMD_HOST: "ENCRYPTED[eb9ef87cec43aa95ed3f02aab81d1806fa509c971388feaca0bffe81683d252296d49196d69017ad15b5f9e35f74e9e0]"
-  S3CMD_SECRET_KEY: "ENCRYPTED[93202cd02e670f69b7d528b4125bac5b4704835d919f057d163a1f6cb25ff47aae2a9c9cf1af21fb9eee9c2a82efc076]"
+  MINIO_ACCESS_KEY: "ENCRYPTED[22b49dc0eb50e7ebe1281025220d1f7916e3a6e370d0f85e1a5ecc16042289db0438f9c9c5c252fa939fc1a23f92de23]"
+  MINIO_SECRET_KEY: "ENCRYPTED[776ca55841a8e4e820ceb8a5c29532b8662bce3954f38f1ea55a59e089370149ba4dfc81d885e588fa1a619cdcc78e30]"
 
 # task templates
 
 build_openstack_ubuntu_task_template: &BUILD_OPENSTACK_UBUNTU_TASK_TEMPLATE
   install_script:
     - apt-get update
-    - apt-get install -y qemu-kvm curl git software-properties-common make python3-pip patch lftp s3cmd
+    - apt-get install -y qemu-kvm curl git software-properties-common make python3-pip patch
     - curl -fsSL https://apt.releases.hashicorp.com/gpg | apt-key add -
     - apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com focal main"
     - apt-add-repository --yes --update ppa:ansible/ansible
     - apt-get install -y packer ansible
+    - wget https://dl.min.io/client/mc/release/linux-amd64/mc
+    - chmod +x mc
+    - ./mc alias set minio https://images.osism.tech $MINIO_ACCESS_KEY $MINIO_SECRET_KEY
 
   submodules_script:
     - git submodule init
@@ -44,34 +45,36 @@ build_openstack_ubuntu_task_template: &BUILD_OPENSTACK_UBUNTU_TASK_TEMPLATE
     - cd image-builder/images/capi
     - make build-qemu-ubuntu-2004
 
-  push_script:
-    - s3cmd --configure --host="$S3CMD_HOST" --host-bucket="%(bucket)s.$S3CMD_HOST" --access_key="$S3CMD_ACCESS_KEY" --secret_key="$S3CMD_SECRET_KEY" --dump-config 2>&1 > /tmp/cirrus-ci-build/.s3cfg
+  prepare_push_script:
     - cd image-builder/images/capi/output
     - find . -type f -execdir bash -c 'x={}; mv $x ${x%.*}' \;
-    - s3cmd --acl-public sync . "s3://$S3CMD_BUCKET"
+
+  push_script:
+    - ./mc cp --recursive image-builder/images/capi/output/* minio/openstack-k8s-capi-images
+    - ./mc policy set download minio/openstack-k8s-capi-images
 
 # tasks
 
 build_openstack_ubuntu_118_task:
   <<: *BUILD_OPENSTACK_UBUNTU_TASK_TEMPLATE
-  skip: "!changesInclude('extra_vars_openstack_ubuntu_118.json')"
+  skip: "!changesInclude('extra_vars_openstack_ubuntu_118.json', '.cirrus.yml')"
   env:
     PACKER_VAR_FILES: ../../../extra_vars_openstack_ubuntu_118.json
 
 build_openstack_ubuntu_119_task:
   <<: *BUILD_OPENSTACK_UBUNTU_TASK_TEMPLATE
-  skip: "!changesInclude('extra_vars_openstack_ubuntu_119.json')"
+  skip: "!changesInclude('extra_vars_openstack_ubuntu_119.json', '.cirrus.yml')"
   env:
     PACKER_VAR_FILES: ../../../extra_vars_openstack_ubuntu_119.json
 
 build_openstack_ubuntu_120_task:
   <<: *BUILD_OPENSTACK_UBUNTU_TASK_TEMPLATE
-  skip: "!changesInclude('extra_vars_openstack_ubuntu_120.json')"
+  skip: "!changesInclude('extra_vars_openstack_ubuntu_120.json', '.cirrus.yml')"
   env:
     PACKER_VAR_FILES: ../../../extra_vars_openstack_ubuntu_120.json
 
 build_openstack_ubuntu_121_task:
   <<: *BUILD_OPENSTACK_UBUNTU_TASK_TEMPLATE
-  skip: "!changesInclude('extra_vars_openstack_ubuntu_121.json')"
+  skip: "!changesInclude('extra_vars_openstack_ubuntu_121.json', '.cirrus.yml')"
   env:
     PACKER_VAR_FILES: ../../../extra_vars_openstack_ubuntu_121.json

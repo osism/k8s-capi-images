@@ -17,5 +17,5 @@ that the image for version `1.21` contains, for example, version `1.21.1`.
 ## Commercial support
 
 We offer commercial support for the images we provide. There are also minor versions available
-and not only the last stable release. Send an email to [info@23technologies.cloud](mailto:info@23technologies.cloud)
+and not only the last stable release. Send an email to [info@osism.tech](mailto:info@osism.tech)
 for more details on commercial support.
