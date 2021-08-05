@@ -78,3 +78,9 @@ build_openstack_ubuntu_121_task:
   skip: "!changesInclude('extra_vars_openstack_ubuntu_121.json', '.cirrus.yml')"
   env:
     PACKER_VAR_FILES: ../../../extra_vars_openstack_ubuntu_121.json
+
+build_openstack_ubuntu_122_task:
+  <<: *BUILD_OPENSTACK_UBUNTU_TASK_TEMPLATE
+  skip: "!changesInclude('extra_vars_openstack_ubuntu_122.json', '.cirrus.yml')"
+  env:
+    PACKER_VAR_FILES: ../../../extra_vars_openstack_ubuntu_122.json
