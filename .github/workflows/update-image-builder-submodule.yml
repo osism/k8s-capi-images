@@ -26,11 +26,11 @@ jobs:
         with:
           EXECUTE_COMMANDS: |
             git submodule update --remote
-          COMMIT_EMAIL: 'bot@23technologies.cloud'
+          COMMIT_EMAIL: 'bot@osism.tech'
           COMMIT_MESSAGE: |
             chore: update image-builder submodule
-            Signed-off-by: 23 Technologies Bot <bot@23technologies.cloud>
-          COMMIT_NAME: '23 Technologies Bot'
+            Signed-off-by: OSISM Bot <bot@osism.tech>
+          COMMIT_NAME: 'OSISM Bot'
           ONLY_DEFAULT_BRANCH: true
           PR_BRANCH_NAME: 'update-image-builder-submodule'
           PR_BRANCH_PREFIX: 'chore/'
