@@ -11,11 +11,11 @@ a collection of cross-provider Kubernetes virtual machine image building utiliti
 The images contain the latest stable releases, which are updated as required. This means
 that the image for version `1.21` contains, for example, version `1.21.1`.
 
-* https://images.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.18/ubuntu-2004-kube-v1.18.qcow2
-* https://images.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.19/ubuntu-2004-kube-v1.19.qcow2
-* https://images.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.20/ubuntu-2004-kube-v1.20.qcow2
-* https://images.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.21/ubuntu-2004-kube-v1.21.qcow2
-* https://images.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.22/ubuntu-2004-kube-v1.22.qcow2
+* https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.18/ubuntu-2004-kube-v1.18.qcow2
+* https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.19/ubuntu-2004-kube-v1.19.qcow2
+* https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.20/ubuntu-2004-kube-v1.20.qcow2
+* https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.21/ubuntu-2004-kube-v1.21.qcow2
+* https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.22/ubuntu-2004-kube-v1.22.qcow2
 
 ## Commercial support
 

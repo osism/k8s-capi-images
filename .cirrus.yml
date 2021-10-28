@@ -20,8 +20,8 @@ env:
   DEBIAN_FRONTEND: noninteractive
   HOME: "$CIRRUS_WORKING_DIR"
   PACKER_TMP_DIR: "$CIRRUS_WORKING_DIR/.packer.d"
-  MINIO_ACCESS_KEY: "ENCRYPTED[22b49dc0eb50e7ebe1281025220d1f7916e3a6e370d0f85e1a5ecc16042289db0438f9c9c5c252fa939fc1a23f92de23]"
-  MINIO_SECRET_KEY: "ENCRYPTED[776ca55841a8e4e820ceb8a5c29532b8662bce3954f38f1ea55a59e089370149ba4dfc81d885e588fa1a619cdcc78e30]"
+  MINIO_ACCESS_KEY: "ENCRYPTED[14f76fd442c6d6d19da0a3334544f991b509b4628cf8ef577db34904951c38f02b930c9b6b0724ee35318f66d646631a]"
+  MINIO_SECRET_KEY: "ENCRYPTED[60cc16f147d8a6c44f27a2d854b5d563322d5fde2011bc29f51088c28b1d88f572be39f2f09159e00625a7d9ec6ac929]"
 
 # task templates
 
@@ -35,7 +35,7 @@ build_openstack_ubuntu_task_template: &BUILD_OPENSTACK_UBUNTU_TASK_TEMPLATE
     - apt-get install -y packer ansible
     - wget https://dl.min.io/client/mc/release/linux-amd64/mc
     - chmod +x mc
-    - ./mc alias set minio https://images.osism.tech $MINIO_ACCESS_KEY $MINIO_SECRET_KEY
+    - ./mc alias set minio https://minio.services.osism.tech $MINIO_ACCESS_KEY $MINIO_SECRET_KEY
 
   submodules_script:
     - git submodule init
