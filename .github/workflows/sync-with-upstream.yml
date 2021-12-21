@@ -1,17 +1,22 @@
 ---
-name: Update extra_vars_X.json versions
+name: Sync with upstream
 
 "on":
   workflow_dispatch:
   schedule:
     - cron: "0 * * * *"
+  push:
+    branches:
+      - main
 
 jobs:
-  update-extra-vars:
+  sync-with-upstream:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
         uses: actions/checkout@v2
+        with:
+          submodules: true
 
       - name: Setup python 3.9
         uses: actions/setup-python@v2
@@ -24,14 +29,15 @@ jobs:
       - uses: technote-space/create-pr-action@v2
         with:
           EXECUTE_COMMANDS: |
+            git submodule update --remote
             ./scripts/run-update-extra-vars.sh
           COMMIT_EMAIL: 'bot@osism.tech'
           COMMIT_MESSAGE: |
-            chore: update extra_vars_X.json
+            chore: update sync with upstream
 
             Signed-off-by: OSISM Bot <bot@osism.tech>
           COMMIT_NAME: 'OSISM Bot'
           ONLY_DEFAULT_BRANCH: true
-          PR_BRANCH_NAME: 'update-extra-vars'
+          PR_BRANCH_NAME: 'sync-with-upstream'
           PR_BRANCH_PREFIX: 'chore/'
-          PR_TITLE: 'chore: update extra-vars'
+          PR_TITLE: 'chore: sync with upstream'
