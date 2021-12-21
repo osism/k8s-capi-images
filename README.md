@@ -13,6 +13,7 @@ that the image for version `1.21` contains, for example, version `1.21.1`.
 
 * https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.21/ubuntu-2004-kube-v1.21.qcow2
 * https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.22/ubuntu-2004-kube-v1.22.qcow2
+* https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.23/ubuntu-2004-kube-v1.23.qcow2
 
 ## Commercial support
 
