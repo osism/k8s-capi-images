@@ -55,24 +55,6 @@ build_openstack_ubuntu_task_template: &BUILD_OPENSTACK_UBUNTU_TASK_TEMPLATE
 
 # tasks
 
-build_openstack_ubuntu_118_task:
-  <<: *BUILD_OPENSTACK_UBUNTU_TASK_TEMPLATE
-  skip: "!changesInclude('extra_vars_openstack_ubuntu_118.json', '.cirrus.yml')"
-  env:
-    PACKER_VAR_FILES: ../../../extra_vars_openstack_ubuntu_118.json
-
-build_openstack_ubuntu_119_task:
-  <<: *BUILD_OPENSTACK_UBUNTU_TASK_TEMPLATE
-  skip: "!changesInclude('extra_vars_openstack_ubuntu_119.json', '.cirrus.yml')"
-  env:
-    PACKER_VAR_FILES: ../../../extra_vars_openstack_ubuntu_119.json
-
-build_openstack_ubuntu_120_task:
-  <<: *BUILD_OPENSTACK_UBUNTU_TASK_TEMPLATE
-  skip: "!changesInclude('extra_vars_openstack_ubuntu_120.json', '.cirrus.yml')"
-  env:
-    PACKER_VAR_FILES: ../../../extra_vars_openstack_ubuntu_120.json
-
 build_openstack_ubuntu_121_task:
   <<: *BUILD_OPENSTACK_UBUNTU_TASK_TEMPLATE
   skip: "!changesInclude('extra_vars_openstack_ubuntu_121.json', '.cirrus.yml')"
