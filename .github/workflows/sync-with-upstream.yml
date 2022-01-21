@@ -33,7 +33,7 @@ jobs:
             ./scripts/run-update-extra-vars.sh
           COMMIT_EMAIL: 'bot@osism.tech'
           COMMIT_MESSAGE: |
-            chore: update sync with upstream
+            chore: sync with upstream
 
             Signed-off-by: OSISM Bot <bot@osism.tech>
           COMMIT_NAME: 'OSISM Bot'
