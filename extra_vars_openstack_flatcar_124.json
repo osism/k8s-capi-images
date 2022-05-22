@@ -1,0 +1,5 @@
+{
+    "kubernetes_semver": "v1.24.0",
+    "kubernetes_series": "v1.24",
+    "output_directory": "./output/{{user `build_name`}}-kube-{{user `kubernetes_series`}}"
+}

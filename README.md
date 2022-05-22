@@ -11,10 +11,16 @@ a collection of cross-provider Kubernetes virtual machine image building utiliti
 The images contain the latest stable releases, which are updated as required. This means
 that the image for version `1.21` contains, for example, version `1.21.1`.
 
+## Ubuntu 20.04
+
 * https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.21/ubuntu-2004-kube-v1.21.qcow2
 * https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.22/ubuntu-2004-kube-v1.22.qcow2
 * https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.23/ubuntu-2004-kube-v1.23.qcow2
 * https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.24/ubuntu-2004-kube-v1.24.qcow2
+
+## Flatcar
+
+* https://minio.services.osism.tech/openstack-k8s-capi-images/flatcar-kube-v1.24/flatcar-kube-v1.24.qcow2
 
 ## Commercial support
 
