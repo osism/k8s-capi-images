@@ -20,7 +20,7 @@ that the image for version `1.21` contains, for example, version `1.21.1`.
 
 ## Flatcar
 
-* https://minio.services.osism.tech/openstack-k8s-capi-images/flatcar-kube-v1.24/flatcar-kube-v1.24.qcow2
+* https://minio.services.osism.tech/openstack-k8s-capi-images/flatcar-stable-3033.2.4-kube-v1.24/flatcar-stable-3033.2.4-kube-v1.24.qcow2
 
 ## Commercial support
 
