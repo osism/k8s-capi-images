@@ -41,3 +41,4 @@ jobs:
           PR_BRANCH_NAME: 'sync-with-upstream'
           PR_BRANCH_PREFIX: 'chore/'
           PR_TITLE: 'chore: sync with upstream'
+          AUTO_MERGE_THRESHOLD_DAYS: 1
