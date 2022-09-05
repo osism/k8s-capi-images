@@ -36,7 +36,7 @@ build_openstack_flatcar_task_template: &BUILD_OPENSTACK_FLATCAR_TASK_TEMPLATE
     - wget https://dl.min.io/client/mc/release/linux-amd64/mc
     - chmod +x mc
     - ./mc alias set minio https://minio.services.osism.tech $MINIO_ACCESS_KEY $MINIO_SECRET_KEY
-    - wget -O packer-provisioner-goss.zip https://github.com/YaleUniversity/packer-provisioner-goss/releases/download/v3.1.2/packer-provisioner-goss-v3.1.2-linux-amd64.zip
+    - wget -O packer-provisioner-goss.zip https://github.com/YaleUniversity/packer-provisioner-goss/releases/download/v3.1.3/packer-provisioner-goss-v3.1.3-linux-amd64.zip
     - unzip packer-provisioner-goss.zip -d /tmp
     - mkdir -p ~/.packer.d/plugins
     - mv /tmp/packer-provisioner-goss ~/.packer.d/plugins
@@ -68,7 +68,7 @@ build_openstack_ubuntu_task_template: &BUILD_OPENSTACK_UBUNTU_TASK_TEMPLATE
     - wget https://dl.min.io/client/mc/release/linux-amd64/mc
     - chmod +x mc
     - ./mc alias set minio https://minio.services.osism.tech $MINIO_ACCESS_KEY $MINIO_SECRET_KEY
-    - wget -O packer-provisioner-goss.zip https://github.com/YaleUniversity/packer-provisioner-goss/releases/download/v3.1.2/packer-provisioner-goss-v3.1.2-linux-amd64.zip
+    - wget -O packer-provisioner-goss.zip https://github.com/YaleUniversity/packer-provisioner-goss/releases/download/v3.1.3/packer-provisioner-goss-v3.1.3-linux-amd64.zip
     - unzip packer-provisioner-goss.zip -d /tmp
     - mkdir -p ~/.packer.d/plugins
     - mv /tmp/packer-provisioner-goss ~/.packer.d/plugins
