@@ -40,6 +40,9 @@ build_openstack_flatcar_task_template: &BUILD_OPENSTACK_FLATCAR_TASK_TEMPLATE
     - unzip packer-provisioner-goss.zip -d /tmp
     - mkdir -p ~/.packer.d/plugins
     - mv /tmp/packer-provisioner-goss ~/.packer.d/plugins
+    - echo "Host *" >> /etc/ssh/ssh_config
+    - echo "    PubkeyAcceptedAlgorithms +ssh-rsa" >> /etc/ssh/ssh_config
+    - echo "    HostkeyAlgorithms +ssh-rsa" >> /etc/ssh/ssh_config
 
   submodules_script:
     - git submodule init
@@ -72,6 +75,9 @@ build_openstack_ubuntu_task_template: &BUILD_OPENSTACK_UBUNTU_TASK_TEMPLATE
     - unzip packer-provisioner-goss.zip -d /tmp
     - mkdir -p ~/.packer.d/plugins
     - mv /tmp/packer-provisioner-goss ~/.packer.d/plugins
+    - echo "Host *" >> /etc/ssh/ssh_config
+    - echo "    PubkeyAcceptedAlgorithms +ssh-rsa" >> /etc/ssh/ssh_config
+    - echo "    HostkeyAlgorithms +ssh-rsa" >> /etc/ssh/ssh_config
 
   submodules_script:
     - git submodule init
