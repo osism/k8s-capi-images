@@ -27,6 +27,8 @@ env:
 
 build_openstack_flatcar_task_template: &BUILD_OPENSTACK_FLATCAR_TASK_TEMPLATE
   install_script:
+    - while fuser /var/lib/dpkg/lock >/dev/null 2>&1; do sleep 5; done;
+    - while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done;
     - apt-get update
     - apt-get install -y qemu-kvm curl git software-properties-common make python3-pip patch
     - curl -fsSL https://apt.releases.hashicorp.com/gpg | apt-key add -
@@ -62,6 +64,8 @@ build_openstack_flatcar_task_template: &BUILD_OPENSTACK_FLATCAR_TASK_TEMPLATE
 
 build_openstack_ubuntu_task_template: &BUILD_OPENSTACK_UBUNTU_TASK_TEMPLATE
   install_script:
+    - while fuser /var/lib/dpkg/lock >/dev/null 2>&1; do sleep 5; done;
+    - while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done;
     - apt-get update
     - apt-get install -y qemu-kvm curl git software-properties-common make python3-pip patch
     - curl -fsSL https://apt.releases.hashicorp.com/gpg | apt-key add -
