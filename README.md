@@ -19,11 +19,6 @@ that the image for version `1.21` contains, for example, version `1.21.1`.
 * https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.24/ubuntu-2004-kube-v1.24.qcow2
 * https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.25/ubuntu-2004-kube-v1.25.qcow2
 
-## Flatcar
-
-* https://minio.services.osism.tech/openstack-k8s-capi-images/flatcar-stable-3227.2.2-kube-v1.24/flatcar-stable-3227.2.2-kube-v1.24.qcow2
-* https://minio.services.osism.tech/openstack-k8s-capi-images/flatcar-stable-3227.2.2-kube-v1.25/flatcar-stable-3227.2.2-kube-v1.25.qcow2
-
 ## Commercial support
 
 We offer commercial support for the images we provide. There are also minor versions available
