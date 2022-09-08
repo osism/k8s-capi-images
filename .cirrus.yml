@@ -136,9 +136,13 @@ build_openstack_flatcar_124_task:
   skip: "!changesInclude('extra_vars_openstack_flatcar_124.json', '.cirrus.yml')"
   env:
     PACKER_VAR_FILES: ../../../extra_vars_openstack_flatcar_124.json
+    FLATCAR_CHANNEL: stable
+    FLATCAR_VERSION: 3227.2.2
 
 build_openstack_flatcar_125_task:
   <<: *BUILD_OPENSTACK_FLATCAR_TASK_TEMPLATE
   skip: "!changesInclude('extra_vars_openstack_flatcar_125.json', '.cirrus.yml')"
   env:
     PACKER_VAR_FILES: ../../../extra_vars_openstack_flatcar_125.json
+    FLATCAR_CHANNEL: stable
+    FLATCAR_VERSION: 3227.2.2
