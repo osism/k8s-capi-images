@@ -125,6 +125,12 @@ build_openstack_ubuntu_125_task:
   env:
     PACKER_VAR_FILES: ../../../extra_vars_openstack_ubuntu_125.json
 
+build_openstack_ubuntu_126_task:
+  <<: *BUILD_OPENSTACK_UBUNTU_TASK_TEMPLATE
+  skip: "!changesInclude('extra_vars_openstack_ubuntu_126.json', '.cirrus.yml')"
+  env:
+    PACKER_VAR_FILES: ../../../extra_vars_openstack_ubuntu_126.json
+
 # build_openstack_flatcar_124_task:
 #   <<: *BUILD_OPENSTACK_FLATCAR_TASK_TEMPLATE
 #   skip: "!changesInclude('extra_vars_openstack_flatcar_124.json', '.cirrus.yml')"
