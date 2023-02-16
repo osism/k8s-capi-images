@@ -1,7 +1,5 @@
 # kubernetes-capi-images
 
-![Cirrus CI - Base Branch Build Status](https://img.shields.io/cirrus/github/osism/k8s-capi-images?style=for-the-badge)
-
 Images intended for use with Kubernetes CAPI providers. More details on
 https://image-builder.sigs.k8s.io/capi/capi.html.
 
