@@ -1,0 +1,6 @@
+---
+- name: Pre
+  hosts: all
+
+  roles:
+    - ensure-pip

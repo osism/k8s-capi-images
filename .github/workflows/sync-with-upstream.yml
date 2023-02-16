@@ -29,7 +29,6 @@ jobs:
       - uses: technote-space/create-pr-action@v2
         with:
           EXECUTE_COMMANDS: |
-            git submodule update --remote
             ./scripts/run-update-extra-vars.sh
           COMMIT_EMAIL: 'bot@osism.tech'
           COMMIT_MESSAGE: |
