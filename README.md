@@ -15,7 +15,7 @@ that the image for version `1.21` contains, for example, version `1.21.1`.
 
 * https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2204-kube-v1.26/ubuntu-2204-kube-v1.26.qcow2
 * https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2204-kube-v1.25/ubuntu-2204-kube-v1.25.qcow2
-* https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.24/ubuntu-2004-kube-v1.24.qcow2
+* https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2204-kube-v1.24/ubuntu-2204-kube-v1.24.qcow2
 
 ## Ubuntu 20.04 (Archived)
 
