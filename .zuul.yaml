@@ -11,8 +11,6 @@
     pre-run: playbooks/pre.yml
     run: playbooks/build.yml
     timeout: 1800
-    vars:
-      upload_image: false
     required-projects:
       - kubernetes-sigs/image-builder
 

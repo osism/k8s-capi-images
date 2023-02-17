@@ -3,7 +3,11 @@
   hosts: all
 
   vars:
+    distro: ubuntu
+    distro_version: "2204"
+    kubernetes_version: "124"
     repo_path: "{{ ansible_user_dir }}/src/github.com"
+    upload_image: false
 
   tasks:
     - name: Run install script
@@ -22,9 +26,9 @@
         cmd: |
           set -e
           set -x
-          export PACKER_VAR_FILES={{ zuul.project.src_dir }}/extra_vars_openstack_ubuntu_124.json
+          export PACKER_VAR_FILES={{ zuul.project.src_dir }}/extra_vars_openstack_{{ distro }}_{{ kubernetes_version }}.json
           export PATH=/home/zuul/.local/bin:$PATH
-          make build-qemu-ubuntu-2204
+          make build-qemu-{{ distro }}-{{ distro_version }}
 
     - name: Run upload script
       ansible.builtin.shell:
