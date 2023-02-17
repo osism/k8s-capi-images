@@ -1,6 +1,65 @@
 ---
-- name: Pre
+- name: Pre tasks 1
+  hosts: all
+
+  tasks:
+    - name: Run install script
+      ansible.builtin.shell:
+        executable: /bin/bash
+        chdir: "{{ zuul.project.src_dir }}"
+        cmd: |
+          set -e
+          set -x
+
+          while fuser /var/lib/dpkg/lock >/dev/null 2>&1; do sleep 5; done;
+          while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done;
+
+          sudo apt-get update
+          sudo apt-get install -y \
+              curl \
+              git \
+              jq \
+              make \
+              patch \
+              python3-pip \
+              qemu-kvm \
+              software-properties-common \
+              unzip
+
+          sudo apt-add-repository --yes --update ppa:ansible/ansible
+          sudo apt-get install -y ansible
+
+          sudo chmod 0777 /dev/kvm
+
+          echo "Host *" | sudo tee /etc/ssh/ssh_config
+          echo "    PubkeyAcceptedAlgorithms +ssh-rsa" | sudo tee /etc/ssh/ssh_config
+          echo "    HostkeyAlgorithms +ssh-rsa" | sudo tee /etc/ssh/ssh_config
+
+          lsmod
+
+
+- name: Pre roles
   hosts: all
 
   roles:
+    - role: ensure-packer
+      vars:
+        packer_version: "1.8.6"
     - ensure-pip
+
+- name: Pre tasks 2
+  hosts: all
+
+  tasks:
+    - name: Run install script
+      ansible.builtin.shell:
+        executable: /bin/bash
+        chdir: "{{ zuul.project.src_dir }}"
+        cmd: |
+          set -e
+          set -x
+
+          wget -O packer-provisioner-goss.zip https://github.com/YaleUniversity/packer-provisioner-goss/releases/download/v3.1.4/packer-provisioner-goss-v3.1.4-linux-amd64.zip
+          unzip packer-provisioner-goss.zip -d /tmp
+          mkdir -p ~/.packer.d/plugins
+          mv /tmp/packer-provisioner-goss ~/.packer.d/plugins
