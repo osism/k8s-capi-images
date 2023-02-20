@@ -22,3 +22,7 @@
     check:
       jobs:
         - k8s-capi-images-build
+        - yamllint
+    gate:
+      jobs:
+        - yamllint
