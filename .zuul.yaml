@@ -23,6 +23,8 @@
       jobs:
         - k8s-capi-images-build
         - yamllint
+        - flake8
     gate:
       jobs:
         - yamllint
+        - flake8
