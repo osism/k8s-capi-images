@@ -2,7 +2,7 @@ while fuser /var/lib/dpkg/lock >/dev/null 2>&1; do sleep 5; done;
 while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done;
 
 sudo apt-get update
-sudo apt-get install -y qemu-kvm curl git software-properties-common make python3-pip patch
+sudo apt-get install -y qemu-kvm curl git software-properties-common make python3-pip patch unzip jq
 
 curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
 sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com jammy main"

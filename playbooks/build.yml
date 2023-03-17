@@ -4,12 +4,13 @@
 
   vars:
     repo_path: "{{ ansible_user_dir }}/src/github.com"
+    zuul_work_dir: "{{ zuul.project.src_dir }}"
 
   tasks:
     - name: Run install script
       ansible.builtin.shell:
         executable: /bin/bash
-        chdir: "{{ zuul.project.src_dir }}"
+        chdir: "{{ zuul_work_dir }}"
         cmd: |
           set -e
           set -x
@@ -18,11 +19,11 @@
     - name: Run build script
       ansible.builtin.shell:
         executable: /bin/bash
-        chdir: "{{ repo_path }}/kubernetes-sigs/image-builder"
+        chdir: "{{ repo_path }}/kubernetes-sigs/image-builder/images/capi"
         cmd: |
           set -e
           set -x
-          export PACKER_VAR_FILES={{ zuul.project.src_dir }}/extra_vars_openstack_ubuntu_124.json
+          export PACKER_VAR_FILES=/home/zuul/{{ zuul_work_dir }}/extra_vars_openstack_ubuntu_124.json
           export PATH=/home/zuul/.local/bin:$PATH
           make build-qemu-ubuntu-2204
 
@@ -35,7 +36,7 @@
           wget https://dl.min.io/client/mc/release/linux-amd64/mc
           chmod +x mc
           ./mc alias set minio https://minio.services.osism.tech {{ minio.MINIO_ACCESS_KEY | trim }} {{ minio.MINIO_SECRET_KEY | trim }}
-          ./mc cp --recursive image-builder/images/capi/output/* minio/openstack-k8s-capi-images
+          ./mc cp --recursive ./* minio/openstack-k8s-capi-images
           ./mc policy set download minio/openstack-k8s-capi-images
       when: upload_image|bool
       no_log: true
