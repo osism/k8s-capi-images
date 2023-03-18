@@ -1,0 +1,22 @@
+---
+- name: Build image
+  hosts: all
+
+  vars:
+    repo_path: "{{ ansible_user_dir }}/src/github.com"
+    upload_image: false
+
+  tasks:
+    - name: Run upload script
+      ansible.builtin.shell:
+        executable: /bin/bash
+        chdir: "{{ repo_path }}/kubernetes-sigs/image-builder/images/capi/output"
+        cmd: |
+          find . -type f -execdir bash -c 'x={}; cp $x ${x%.*}.qcow2; mv $x $x.qcow2' \;
+          wget https://dl.min.io/client/mc/release/linux-amd64/mc
+          chmod +x mc
+          ./mc alias set minio https://minio.services.osism.tech {{ minio.MINIO_ACCESS_KEY | trim }} {{ minio.MINIO_SECRET_KEY | trim }}
+          ./mc cp --recursive image-builder/images/capi/output/* minio/openstack-k8s-capi-images
+          ./mc policy set download minio/openstack-k8s-capi-images
+      when: upload_image|bool
+      no_log: true

@@ -1,18 +1,9 @@
 ---
-- secret:
-    name: minio
-    data:
-      MINIO_ACCESS_KEY:
-      MINIO_SECRET_KEY:
-
 - job:
     name: k8s-capi-images-build
     parent: base
     pre-run: playbooks/pre.yml
     run: playbooks/build.yml
-    timeout: 1800
-    vars:
-      upload_image: false
     required-projects:
       - kubernetes-sigs/image-builder
 
