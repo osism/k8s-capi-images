@@ -1,5 +1,5 @@
 ---
-- name: Pre tasks 1
+- name: Pre tasks - part 1
   hosts: all
 
   tasks:
@@ -47,8 +47,12 @@
         packer_version: "1.8.6"
     - ensure-pip
 
-- name: Pre tasks 2
+- name: Pre tasks - part 2
   hosts: all
+
+  vars:
+    packer_provisioner_goss_version: "3.1.4"
+
 
   tasks:
     - name: Run install script
@@ -59,7 +63,7 @@
           set -e
           set -x
 
-          wget -O packer-provisioner-goss.zip https://github.com/YaleUniversity/packer-provisioner-goss/releases/download/v3.1.4/packer-provisioner-goss-v3.1.4-linux-amd64.zip
+          wget -O packer-provisioner-goss.zip https://github.com/YaleUniversity/packer-provisioner-goss/releases/download/v{{ packer_provisioner_goss_version }}/packer-provisioner-goss-v{{ packer_provisioner_goss_version }}-linux-amd64.zip
           unzip packer-provisioner-goss.zip -d /tmp
           mkdir -p ~/.packer.d/plugins
           mv /tmp/packer-provisioner-goss ~/.packer.d/plugins
