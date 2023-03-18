@@ -1,6 +1,8 @@
 ---
 - name: Build image
-  hosts: all
+  # hosts: all
+  hosts: localhost
+  connection: local
 
   vars:
     repo_path: "{{ ansible_user_dir|default('~') }}/src/github.com"

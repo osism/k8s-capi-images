@@ -1,6 +1,8 @@
 ---
 - name: Build image
-  hosts: all
+  # hosts: all
+  hosts: localhost
+  connection: local
 
   vars:
     distro: "{{ lookup('ansible.builtin.env', 'DISTRO', default='ubuntu') }}"

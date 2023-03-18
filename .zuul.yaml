@@ -30,9 +30,6 @@
     default-branch: main
     check:
       jobs:
-        - k8s-capi-images-build-124
-        - k8s-capi-images-build-125
-        - k8s-capi-images-build-126
         - yamllint
         - flake8
     gate:
