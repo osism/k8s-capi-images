@@ -1,0 +1,47 @@
+----
+# NOTE: That didn't work, thus use of instance with nested virtualization enabled.
+#
+# container:
+#   image: ubuntu:20.04
+#   kvm: true
+
+compute_engine_instance:
+  image_project: cirrus-images
+  image: family/docker-kvm
+  platform: linux
+  cpu: 4
+  memory: 16G
+  disk: 100
+  nested_virtualization: true
+
+# environment variables
+
+env:
+  DEBIAN_FRONTEND: noninteractive
+  HOME: "$CIRRUS_WORKING_DIR"
+  PACKER_TMP_DIR: "$CIRRUS_WORKING_DIR/.packer.d"
+  MINIO_ACCESS_KEY: "ENCRYPTED[3cbae51bb9bbab4bb216638bde05aef2bf0ab46541238c37a9f2ed18aca74e392995b24128827cf32ac5b5ba0ab607dd]"
+  MINIO_SECRET_KEY: "ENCRYPTED[8f2b0f75c64c88e70bd2e55a2798678d049e9a28895c0c1ad805070a74c3583df6e9080535ff9151fdc8777dc7d207c0]"
+
+build_openstack_ubuntu_task_template: &BUILD_OPENSTACK_UBUNTU_TASK_TEMPLATE
+  install_script:
+    - while fuser /var/lib/dpkg/lock >/dev/null 2>&1; do sleep 5; done;
+    - while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done;
+    - apt-get update
+    - apt-get install -y curl git software-properties-common
+    - curl -fsSL https://apt.releases.hashicorp.com/gpg | apt-key add -
+    - apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com focal main"
+    - apt-add-repository --yes --update ppa:ansible/ansible
+    - apt-get install -y ansible packer
+
+  prepare_script:
+    - git clone https://github.com/kubernetes-sigs/image-builder
+    - ansible-playbook -i localhost, playbooks/pre.yml -e working_directory=$CIRRUS_WORKING_DIR
+
+  build_script:
+    - ansible-playbook -i localhost, playbooks/build.yml -e extra_vars_openstack_directory=$CIRRUS_WORKING_DIR -e working_directory=$CIRRUS_WORKING_DIR/image-builder/images/capi
+
+build_openstack_ubuntu_124_task:
+  <<: *BUILD_OPENSTACK_UBUNTU_TASK_TEMPLATE
+  env:
+    KUBERNETES_VERSION: 124

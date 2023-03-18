@@ -3,7 +3,7 @@
   hosts: all
 
   vars:
-    repo_path: "{{ ansible_user_dir }}/src/github.com"
+    repo_path: "{{ ansible_user_dir|default('~') }}/src/github.com"
     upload_image: false
 
   tasks:
