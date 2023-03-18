@@ -2,11 +2,14 @@
 - name: Pre tasks - part 1
   hosts: all
 
+  vars:
+    working_directory: "{{ zuul.project.src_dir|default('~') }}"
+
   tasks:
     - name: Run install script
       ansible.builtin.shell:
         executable: /bin/bash
-        chdir: "{{ zuul.project.src_dir }}"
+        chdir: "{{ working_directory }}"
         cmd: |
           set -e
           set -x
@@ -41,24 +44,31 @@
 - name: Pre roles
   hosts: all
 
+  vars:
+    install_packer: false
+    install_pip: false
+
   roles:
     - role: ensure-packer
       vars:
         packer_version: "1.8.6"
-    - ensure-pip
+      when: install_packer|bool
+
+    - role: ensure-pip
+      when: install_pip|bool
 
 - name: Pre tasks - part 2
   hosts: all
 
   vars:
     packer_provisioner_goss_version: "3.1.4"
-
+    working_directory: "{{ zuul.project.src_dir|default('~') }}"
 
   tasks:
     - name: Run install script
       ansible.builtin.shell:
         executable: /bin/bash
-        chdir: "{{ zuul.project.src_dir }}"
+        chdir: "{{ working_directory }}"
         cmd: |
           set -e
           set -x
