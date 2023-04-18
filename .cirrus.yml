@@ -49,6 +49,7 @@ build_openstack_ubuntu_task_template: &BUILD_OPENSTACK_UBUNTU_TASK_TEMPLATE
     - cd image-builder/images/capi/output
     - find . -type f -execdir bash -c 'x={}; cp $x ${x%.*}.qcow2; mv $x $x.qcow2' \;
     - find . -type f -execdir bash -c 'x={}; virt-sparsify --in-place $x' \;
+    - find . -type f -execdir bash -c 'x={}; sha256sum $x > $x.CHECKSUM' \;
     - du -h
 
   push_script:
