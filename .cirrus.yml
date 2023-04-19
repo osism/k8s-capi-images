@@ -56,6 +56,40 @@ build_openstack_ubuntu_task_template: &BUILD_OPENSTACK_UBUNTU_TASK_TEMPLATE
     - ./mc cp --recursive image-builder/images/capi/output/* minio/openstack-k8s-capi-images
     - ./mc policy set download minio/openstack-k8s-capi-images
 
+build_openstack_old_ubuntu_task_template: &BUILD_OPENSTACK_OLD_UBUNTU_TASK_TEMPLATE
+  timeout_in: 120m
+  install_script:
+    - while fuser /var/lib/dpkg/lock >/dev/null 2>&1; do sleep 5; done;
+    - while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done;
+    - apt-get update
+    - apt-get install -y curl git software-properties-common
+    - curl -fsSL https://apt.releases.hashicorp.com/gpg | apt-key add -
+    - apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com focal main"
+    - apt-add-repository --yes --update ppa:ansible/ansible
+    - apt-get install -y ansible packer
+
+  prepare_script:
+    - git clone https://github.com/kubernetes-sigs/image-builder
+    - ansible-playbook -i localhost, playbooks/pre.yml -e working_directory=$CIRRUS_WORKING_DIR
+
+  build_script:
+    - cd image-builder/images/capi
+    - make build-qemu-ubuntu-2004
+
+  prepare_push_script:
+    - wget https://dl.min.io/client/mc/release/linux-amd64/mc
+    - chmod +x mc
+    - ./mc alias set minio https://minio.services.osism.tech $MINIO_ACCESS_KEY $MINIO_SECRET_KEY
+    - cd image-builder/images/capi/output
+    - find . -type f -execdir bash -c 'x={}; cp $x ${x%.*}.qcow2; mv $x $x.qcow2' \;
+    - find . -type f -execdir bash -c 'x={}; virt-sparsify --in-place $x' \;
+    - find . -type f -execdir bash -c 'x={}; sha256sum $x > $x.CHECKSUM' \;
+    - du -h
+
+  push_script:
+    - ./mc cp --recursive image-builder/images/capi/output/* minio/openstack-k8s-capi-images
+    - ./mc policy set download minio/openstack-k8s-capi-images
+
 build_openstack_ubuntu_124_task:
   <<: *BUILD_OPENSTACK_UBUNTU_TASK_TEMPLATE
   env:
@@ -68,5 +102,20 @@ build_openstack_ubuntu_125_task:
 
 build_openstack_ubuntu_126_task:
   <<: *BUILD_OPENSTACK_UBUNTU_TASK_TEMPLATE
+  env:
+    PACKER_VAR_FILES: ../../../extra_vars_openstack_ubuntu_126.json
+
+build_openstack_old_ubuntu_124_task:
+  <<: *BUILD_OPENSTACK_OLD_UBUNTU_TASK_TEMPLATE
+  env:
+    PACKER_VAR_FILES: ../../../extra_vars_openstack_ubuntu_124.json
+
+build_openstack_old_ubuntu_125_task:
+  <<: *BUILD_OPENSTACK_OLD_UBUNTU_TASK_TEMPLATE
+  env:
+    PACKER_VAR_FILES: ../../../extra_vars_openstack_ubuntu_125.json
+
+build_openstack_old_ubuntu_126_task:
+  <<: *BUILD_OPENSTACK_OLD_UBUNTU_TASK_TEMPLATE
   env:
     PACKER_VAR_FILES: ../../../extra_vars_openstack_ubuntu_126.json
