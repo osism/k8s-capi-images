@@ -9,8 +9,6 @@ a collection of cross-provider Kubernetes virtual machine image building utiliti
 The following images contain the latest stable releases, which are updated as required.
 This means that the image for version `1.21` contains, for example, version `1.21.1`.
 
-Hier ist die Tabelle in Markdown-Syntax basierend auf dem gegebenen Input:
-
 | Version | Image URL                                                                                                                                                       |
 |---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | v1.27   | [ubuntu-2204-kube-v1.27.qcow2](https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2204-kube-v1.27/ubuntu-2204-kube-v1.27.qcow2)                 |
