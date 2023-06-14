@@ -22,6 +22,7 @@ file = sys.argv[1]
 # Functions
 ###############################################################################
 
+
 def load_file(file):
     with open(file) as json_load_file:
         data = json.load(json_load_file)
@@ -34,7 +35,7 @@ def traverse_pagination():
     # https://docs.github.com/en/rest/guides/traversing-with-pagination
     query_url = github_api + "?q=addClass+user:mozilla&per_page=100"
     with urllib.request.urlopen(query_url) as url:
-        result = url.getheader('link')
+        result = url.getheader("link")
 
     # turn this answer
     # <https://api.github.com/repositories/20580498/tags?q=addClass+user%3Amo\
@@ -53,11 +54,11 @@ def traverse_pagination():
     #  '8>; rel',
     #  '"last"'
     # ]
-    result = result.split('=')
+    result = result.split("=")
     # get only the 8th entry: '8>; rel'
     result = result[7]
     # strip away the html stuff to get only the number of pages
-    result = result.split('>')[0]
+    result = result.split(">")[0]
 
     return int(result)
 
@@ -75,15 +76,17 @@ def update_version(data):
             # check the 100 tags if they are valid and append
             # them to the list "versions"
             for entry in json.loads(url.read().decode()):
-                if ("rc" not in entry['name'] and
-                        "alpha" not in entry['name'] and
-                        "beta" not in entry['name']):
-                    versions_list.append(entry['name'])
+                if (
+                    "rc" not in entry["name"]
+                    and "alpha" not in entry["name"]
+                    and "beta" not in entry["name"]
+                ):
+                    versions_list.append(entry["name"])
 
             # find the first entry in version_list that matches
             # the series (v1.18 matches v1.18.3)
             for entry in versions_list:
-                if data['kubernetes_series'] in entry:
+                if data["kubernetes_series"] in entry:
                     new_version = entry
                     break
 
@@ -96,19 +99,19 @@ def update_version(data):
     # check if we really found a match
     if not new_version == "v0.0.0":
         # e.g. 1.18.1-00
-        data['kubernetes_deb_version'] = new_version[1:] + "-00"
+        data["kubernetes_deb_version"] = new_version[1:] + "-00"
         # e.g. v1.18.1
-        data['kubernetes_semver'] = new_version
+        data["kubernetes_semver"] = new_version
         # e.g. v1.18
-        data['kubernetes_series'] = (new_version.split(".")[0] +
-                                     "." +
-                                     new_version.split(".")[1])
+        data["kubernetes_series"] = (
+            new_version.split(".")[0] + "." + new_version.split(".")[1]
+        )
 
     return data
 
 
 def dump_file(file, data):
-    with open(file, 'w') as fp:
+    with open(file, "w") as fp:
         json.dump(data, fp, indent=4, sort_keys=True)
         fp.write("\n")
 
