@@ -113,21 +113,3 @@ build_openstack_ubuntu_127_task:
   skip: "!changesInclude('extra_vars_openstack_ubuntu_127.json')"
   env:
     PACKER_VAR_FILES: ../../../extra_vars_openstack_ubuntu_127.json
-
-build_openstack_old_ubuntu_124_task:
-  <<: *BUILD_OPENSTACK_OLD_UBUNTU_TASK_TEMPLATE
-  skip: "!changesInclude('extra_vars_openstack_ubuntu_124.json')"
-  env:
-    PACKER_VAR_FILES: ../../../extra_vars_openstack_ubuntu_124.json
-
-build_openstack_old_ubuntu_125_task:
-  <<: *BUILD_OPENSTACK_OLD_UBUNTU_TASK_TEMPLATE
-  skip: "!changesInclude('extra_vars_openstack_ubuntu_125.json')"
-  env:
-    PACKER_VAR_FILES: ../../../extra_vars_openstack_ubuntu_125.json
-
-build_openstack_old_ubuntu_126_task:
-  <<: *BUILD_OPENSTACK_OLD_UBUNTU_TASK_TEMPLATE
-  skip: "!changesInclude('extra_vars_openstack_ubuntu_126.json')"
-  env:
-    PACKER_VAR_FILES: ../../../extra_vars_openstack_ubuntu_126.json
