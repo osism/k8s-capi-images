@@ -14,7 +14,6 @@ This means that the image for version `1.27` contains, for example, version `1.2
 | v1.27   | [ubuntu-2204-kube-v1.27.qcow2](https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2204-kube-v1.27/ubuntu-2204-kube-v1.27.qcow2)                 |
 | v1.26   | [ubuntu-2204-kube-v1.26.qcow2](https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2204-kube-v1.26/ubuntu-2204-kube-v1.26.qcow2)                 |
 | v1.25   | [ubuntu-2204-kube-v1.25.qcow2](https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2204-kube-v1.25/ubuntu-2204-kube-v1.25.qcow2)                 |
-| v1.24   | [ubuntu-2204-kube-v1.24.qcow2](https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2204-kube-v1.24/ubuntu-2204-kube-v1.24.qcow2)                 |
 
 ## Ubuntu 22.04
 
@@ -29,6 +28,11 @@ This means that the image for version `1.27` contains, for example, version `1.2
 | v1.25  | v1.25.11 | [ubuntu-2204-kube-v1.25.11.qcow2](https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2204-kube-v1.25/ubuntu-2204-kube-v1.25.11.qcow2)   | [ubuntu-2204-kube-v1.25.11.qcow2.CHECKSUM](https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2204-kube-v1.25/ubuntu-2204-kube-v1.25.11.qcow2.CHECKSUM) |
 |        | v1.25.10 | [ubuntu-2204-kube-v1.25.10.qcow2](https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2204-kube-v1.25/ubuntu-2204-kube-v1.25.10.qcow2)   | [ubuntu-2204-kube-v1.25.10.qcow2.CHECKSUM](https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2204-kube-v1.25/ubuntu-2204-kube-v1.25.10.qcow2.CHECKSUM) |
 |        | v1.25.9  | [ubuntu-2204-kube-v1.25.9.qcow2](https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2204-kube-v1.25/ubuntu-2204-kube-v1.25.9.qcow2)     | [ubuntu-2204-kube-v1.25.9.qcow2.CHECKSUM](https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2204-kube-v1.25/ubuntu-2204-kube-v1.25.9.qcow2.CHECKSUM)   |
+
+## Ubuntu 22.04 (Archived)
+
+| Series | Version  | Image URL                                                                                                                                               | CHECKSUM URL                                                                                                                                                            |
+|--------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | v1.24  | v1.24.15 | [ubuntu-2204-kube-v1.24.15.qcow2](https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2204-kube-v1.24/ubuntu-2204-kube-v1.24.15.qcow2)   | [ubuntu-2204-kube-v1.24.15.qcow2.CHECKSUM](https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2204-kube-v1.24/ubuntu-2204-kube-v1.24.15.qcow2.CHECKSUM) |
 |        | v1.24.14 | [ubuntu-2204-kube-v1.24.14.qcow2](https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2204-kube-v1.24/ubuntu-2204-kube-v1.24.14.qcow2)   | [ubuntu-2204-kube-v1.24.14.qcow2.CHECKSUM](https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2204-kube-v1.24/ubuntu-2204-kube-v1.24.14.qcow2.CHECKSUM) |
 |        | v1.24.13 | [ubuntu-2204-kube-v1.24.13.qcow2](https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2204-kube-v1.24/ubuntu-2204-kube-v1.24.13.qcow2)   | [ubuntu-2204-kube-v1.24.13.qcow2.CHECKSUM](https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2204-kube-v1.24/ubuntu-2204-kube-v1.24.13.qcow2.CHECKSUM) |
@@ -44,13 +48,16 @@ This means that the image for version `1.27` contains, for example, version `1.2
 | v1.25  | v1.25.11 | [ubuntu-2004-kube-v1.25.11.qcow2](https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.25/ubuntu-2004-kube-v1.25.11.qcow2)   | [ubuntu-2004-kube-v1.25.11.qcow2.CHECKSUM](https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.25/ubuntu-2004-kube-v1.25.11.qcow2.CHECKSUM)  |
 |        | v1.25.10 | [ubuntu-2004-kube-v1.25.10.qcow2](https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.25/ubuntu-2004-kube-v1.25.10.qcow2)   | [ubuntu-2004-kube-v1.25.10.qcow2.CHECKSUM](https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.25/ubuntu-2004-kube-v1.25.10.qcow2.CHECKSUM)  |
 |        | v1.25.9  | [ubuntu-2004-kube-v1.25.9.qcow2](https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.25/ubuntu-2004-kube-v1.25.9.qcow2)     | [ubuntu-2004-kube-v1.25.9.qcow2.CHECKSUM](https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.25/ubuntu-2004-kube-v1.25.9.qcow2.CHECKSUM)    |
-| v1.24  | v1.24.15 | [ubuntu-2004-kube-v1.24.15.qcow2](https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.24/ubuntu-2004-kube-v1.24.15.qcow2)   | [ubuntu-2004-kube-v1.24.15.qcow2.CHECKSUM](https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.24/ubuntu-2004-kube-v1.24.15.qcow2.CHECKSUM)  |
-|        | v1.24.14 | [ubuntu-2004-kube-v1.24.14.qcow2](https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.24/ubuntu-2004-kube-v1.24.14.qcow2)   | [ubuntu-2004-kube-v1.24.14.qcow2.CHECKSUM](https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.24/ubuntu-2004-kube-v1.24.14.qcow2.CHECKSUM)  |
-|        | v1.24.13 | [ubuntu-2004-kube-v1.24.13.qcow2](https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.24/ubuntu-2004-kube-v1.24.13.qcow2)   | [ubuntu-2004-kube-v1.24.13.qcow2.CHECKSUM](https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.24/ubuntu-2004-kube-v1.24.13.qcow2.CHECKSUM)  |
 
 ## Ubuntu 20.04 (Archived)
 
 These images are no longer updated.
+
+| Series | Version  | Image URL                                                                                                                                               | CHECKSUM URL                                                                                                                                                             |
+|--------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| v1.24  | v1.24.15 | [ubuntu-2004-kube-v1.24.15.qcow2](https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.24/ubuntu-2004-kube-v1.24.15.qcow2)   | [ubuntu-2004-kube-v1.24.15.qcow2.CHECKSUM](https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.24/ubuntu-2004-kube-v1.24.15.qcow2.CHECKSUM)  |
+|        | v1.24.14 | [ubuntu-2004-kube-v1.24.14.qcow2](https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.24/ubuntu-2004-kube-v1.24.14.qcow2)   | [ubuntu-2004-kube-v1.24.14.qcow2.CHECKSUM](https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.24/ubuntu-2004-kube-v1.24.14.qcow2.CHECKSUM)  |
+|        | v1.24.13 | [ubuntu-2004-kube-v1.24.13.qcow2](https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.24/ubuntu-2004-kube-v1.24.13.qcow2)   | [ubuntu-2004-kube-v1.24.13.qcow2.CHECKSUM](https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.24/ubuntu-2004-kube-v1.24.13.qcow2.CHECKSUM)  |
 
 * https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.23/ubuntu-2004-kube-v1.23.qcow2
 * https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2004-kube-v1.22/ubuntu-2004-kube-v1.22.qcow2
