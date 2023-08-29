@@ -73,3 +73,9 @@ build_127_task:
   skip: "!changesInclude('extra_vars_127.json')"
   env:
     PACKER_VAR_FILES: ../../../extra_vars_127.json
+
+build_128_task:
+  <<: *BUILD_TASK_TEMPLATE
+  skip: "!changesInclude('extra_vars_128.json')"
+  env:
+    PACKER_VAR_FILES: ../../../extra_vars_128.json
