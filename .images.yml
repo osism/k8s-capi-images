@@ -1,0 +1,40 @@
+---
+images:
+  - name: Kubernetes CAPI
+    enable: true
+    keep: true
+    format: qcow2
+    login: ubuntu
+    min_disk: 20
+    min_ram: 512
+    status: active
+    visibility: public
+    multi: false
+    meta:
+      architecture: x86_64
+      hw_disk_bus: virtio
+      hw_rng_model: virtio
+      hw_scsi_model: virtio-scsi
+      hw_watchdog_action: reset
+      os_distro: ubuntu
+      replace_frequency: never
+      uuid_validity: none
+      provided_until: none
+    tags: []
+    versions:
+      - version: '1.25.13'
+        url: https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2204-kube-v1.25/ubuntu-2204-kube-v1.25.13.qcow2
+        checksum: "sha256:f49fba95ea29a45f506bb8a3d0132d3e9aa8541b1b77951ea41528fe52b842cd"
+        build_date: '2023-08-28'
+      - version: '1.26.8'
+        url: https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2204-kube-v1.26/ubuntu-2204-kube-v1.26.8.qcow2
+        checksum: "sha256:227dbb3b2ac5c53f2bed33f3d31e0788724023d5b49d72a0fa8da727f758f09e"
+        build_date: '2023-08-28'
+      - version: '1.27.5'
+        url: https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2204-kube-v1.27/ubuntu-2204-kube-v1.27.5.qcow2
+        checksum: "sha256:ab2d843dc64fd4c20afdd0ec567c70ab8570b0e7cde7c1dd08c0ace8d7152d37"
+        build_date: '2023-08-28'
+      - version: '1.28.0'
+        url: https://minio.services.osism.tech/openstack-k8s-capi-images/ubuntu-2204-kube-v1.28/ubuntu-2204-kube-v1.28.0.qcow2
+        checksum: "sha256:95ee88fd3eda47686176049b7a0597f3ab06d16f9633706dcd2ec93e259adf66"
+        build_date: '2023-08-29'
