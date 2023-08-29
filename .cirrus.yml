@@ -19,8 +19,8 @@ env:
   DEBIAN_FRONTEND: noninteractive
   HOME: "$CIRRUS_WORKING_DIR"
   PACKER_TMP_DIR: "$CIRRUS_WORKING_DIR/.packer.d"
-  MINIO_ACCESS_KEY: "ENCRYPTED[3cbae51bb9bbab4bb216638bde05aef2bf0ab46541238c37a9f2ed18aca74e392995b24128827cf32ac5b5ba0ab607dd]"
-  MINIO_SECRET_KEY: "ENCRYPTED[8f2b0f75c64c88e70bd2e55a2798678d049e9a28895c0c1ad805070a74c3583df6e9080535ff9151fdc8777dc7d207c0]"
+  MINIO_ACCESS_KEY: "ENCRYPTED[7f7aba7198fae768824e62cefa22d1261d1b8fafc718ee039136131a84d863669fe5fc4db1d381e281a0c61bf99fdfa1]"
+  MINIO_SECRET_KEY: "ENCRYPTED[065a2797d025536be386e58a777600f254dca878e26e989856bd758226e558b889b5a17af07fb6cf256231652f6def9d]"
 
 build_task_template: &BUILD_TASK_TEMPLATE
   timeout_in: 120m
@@ -45,7 +45,7 @@ build_task_template: &BUILD_TASK_TEMPLATE
   prepare_push_script:
     - wget https://dl.min.io/client/mc/release/linux-amd64/mc
     - chmod +x mc
-    - ./mc alias set minio https://minio.services.osism.tech $MINIO_ACCESS_KEY $MINIO_SECRET_KEY
+    - ./mc alias set minio https://swift.services.a.regiocloud.tech $MINIO_ACCESS_KEY $MINIO_SECRET_KEY
     - cd image-builder/images/capi/output
     - find . -type f -execdir bash -c 'x={}; cp $x ${x%.*}.qcow2; mv $x $x.qcow2' \;
     - find . -type f -execdir bash -c 'x={}; virt-sparsify --in-place $x' \;
