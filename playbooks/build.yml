@@ -1,16 +1,14 @@
 ---
 - name: Build image
-  # hosts: all
-  hosts: localhost
+  hosts: all
   connection: local
 
   vars:
-    distro: "{{ lookup('ansible.builtin.env', 'DISTRO', default='ubuntu') }}"
-    distro_version: "{{ lookup('ansible.builtin.env', 'DISTRO_VERSION', default='2204') }}"
-    extra_vars_openstack_directory: "{{ repo_path }}/osism/k8s-capi-images"
-    kubernetes_version: "{{ lookup('ansible.builtin.env', 'KUBERNETES_VERSION', default='124') }}"
-    repo_path: "{{ ansible_user_dir|default('~') }}/src/github.com"
-    working_directory: "{{ repo_path }}/kubernetes-sigs/image-builder/images/capi"
+    basepath: "{{ ansible_user_dir }}/src/github.com"
+    working_directory: "{{ basepath }}/kubernetes-sigs/image-builder/images/capi"
+
+    distro: ubuntu
+    distro_version: 2204
 
   tasks:
     - name: Run build script
@@ -21,7 +19,10 @@
           set -e
           set -x
 
-          export PACKER_VAR_FILES={{ extra_vars_openstack_directory }}/extra_vars_openstack_{{ distro }}_{{ kubernetes_version }}.json
+          pwd
+          ls -la
+
+          export PACKER_VAR_FILES={{ basepath }}/osism/k8s-capi-images/extra_vars_{{ kubernetes_version }}.json
           export PATH=~/.local/bin:$PATH
 
           make build-qemu-{{ distro }}-{{ distro_version }}
