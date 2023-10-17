@@ -84,7 +84,7 @@ def update_version(data):
                     versions_list.append(entry["name"])
 
             # find the first entry in version_list that matches
-            # the series (v1.18 matches v1.18.3)
+            # the series (v1.28 matches v1.28.3)
             for entry in versions_list:
                 if data["kubernetes_series"] in entry:
                     new_version = entry
@@ -98,11 +98,11 @@ def update_version(data):
 
     # check if we really found a match
     if not new_version == "v0.0.0":
-        # e.g. 1.18.1-00
-        data["kubernetes_deb_version"] = new_version[1:] + "-00"
-        # e.g. v1.18.1
+        # e.g. 1.28.2-1.1
+        data["kubernetes_deb_version"] = new_version[1:] + "-1.1"
+        # e.g. v1.28.2
         data["kubernetes_semver"] = new_version
-        # e.g. v1.18
+        # e.g. v1.28
         data["kubernetes_series"] = (
             new_version.split(".")[0] + "." + new_version.split(".")[1]
         )
