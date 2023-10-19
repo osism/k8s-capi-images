@@ -48,17 +48,17 @@
 #
 # - name: Pre roles
 #   hosts: all
-# 
+#
 #   vars:
 #     install_packer: false
 #     install_pip: false
-# 
+#
 #   roles:
 #     - role: ensure-packer
 #       vars:
 #         packer_version: "1.8.6"
 #       when: install_packer|bool
-# 
+#
 #     - role: ensure-pip
 #       when: install_pip|bool
 
@@ -68,7 +68,7 @@
   connection: local
 
   vars:
-    packer_provisioner_goss_version: "3.1.4"
+    ppg_version: "3.1.4"  # packer-provisioner-goss
     working_directory: "{{ zuul.project.src_dir|default('~') }}"
 
   tasks:
@@ -80,7 +80,9 @@
           set -e
           set -x
 
-          wget -O packer-provisioner-goss.zip https://github.com/YaleUniversity/packer-provisioner-goss/releases/download/v{{ packer_provisioner_goss_version }}/packer-provisioner-goss-v{{ packer_provisioner_goss_version }}-linux-amd64.zip
+          wget \
+              -O packer-provisioner-goss.zip \
+              https://github.com/YaleUniversity/packer-provisioner-goss/releases/download/v{{ ppg_version }}/packer-provisioner-goss-v{{ ppg_version }}-linux-amd64.zip
           unzip packer-provisioner-goss.zip -d /tmp
           mkdir -p ~/.packer.d/plugins
           mv /tmp/packer-provisioner-goss ~/.packer.d/plugins
