@@ -8,18 +8,6 @@
       - kubernetes-sigs/image-builder
 
 - job:
-    name: k8s-capi-images-build-124
-    parent: k8s-capi-images-build
-    vars:
-      kubernetes_version: 124
-
-- job:
-    name: k8s-capi-images-build-125
-    parent: k8s-capi-images-build
-    vars:
-      kubernetes_version: 125
-
-- job:
     name: k8s-capi-images-build-126
     parent: k8s-capi-images-build
     vars:
