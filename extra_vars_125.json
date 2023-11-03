@@ -1,6 +1,0 @@
-{
-    "kubernetes_deb_version": "1.25.15-1.1",
-    "kubernetes_semver": "v1.25.15",
-    "kubernetes_series": "v1.25",
-    "output_directory": "./output/{{user `build_name`}}-kube-{{user `kubernetes_series`}}"
-}
