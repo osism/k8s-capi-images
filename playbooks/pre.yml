@@ -32,9 +32,6 @@
               software-properties-common \
               unzip
 
-          sudo apt-add-repository --yes --update ppa:ansible/ansible
-          sudo apt-get install -y ansible
-
           sudo chmod 0777 /dev/kvm
 
           echo "Host *" | sudo tee /etc/ssh/ssh_config
