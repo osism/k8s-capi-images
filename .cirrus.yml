@@ -29,18 +29,17 @@ build_task_template: &BUILD_TASK_TEMPLATE
     - while fuser /var/lib/dpkg/lock >/dev/null 2>&1; do sleep 5; done;
     - while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done;
     - apt-get update
-    - apt-get install -y curl git software-properties-common
-    - curl -fsSL https://apt.releases.hashicorp.com/gpg | apt-key add -
-    - apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com focal main"
-    - apt-add-repository --yes --update ppa:ansible/ansible
-    - apt-get install -y ansible packer
+    - apt-get install -y git make python3-pip curl jq unzip
 
   prepare_script:
     - git clone https://github.com/kubernetes-sigs/image-builder
-    - ansible-playbook -i localhost, playbooks/pre.yml -e working_directory=$CIRRUS_WORKING_DIR
+    - cd image-builder/images/capi
+    - export PATH=$PWD/.bin:$HOME/.local/bin:$PATH
+    - make deps-qemu
 
   build_script:
     - cd image-builder/images/capi
+    - export PATH=$PWD/.bin:$HOME/.local/bin:$PATH
     - make build-qemu-ubuntu-2204
 
   prepare_push_script:
@@ -74,3 +73,9 @@ build_128_task:
   skip: "!changesInclude('extra_vars_128.json')"
   env:
     PACKER_VAR_FILES: ../../../extra_vars_128.json
+
+build_129_task:
+  <<: *BUILD_TASK_TEMPLATE
+  skip: "!changesInclude('extra_vars_129.json')"
+  env:
+    PACKER_VAR_FILES: ../../../extra_vars_129.json
