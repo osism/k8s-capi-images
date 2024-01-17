@@ -1,17 +1,41 @@
 ---
-- name: Pre tasks - part 1
-  # hosts: all
-  hosts: localhost
-  connection: local
+- name: Pre play
+  hosts: all
 
   vars:
+    ppg_version: "3.1.4"
+    packer_version: "1.8.6"
+
     working_directory: "{{ zuul.project.src_dir|default('~') }}"
 
   tasks:
+    - name: Install required packages
+      become: true
+      ansible.builtin.apt:
+        name:
+          - curl
+          - git
+          - jq
+          - libguestfs-tools
+          - make
+          - patch
+          - python3-pip
+          - qemu-kvm
+          - software-properties-common
+          - unzip
+        update_cache: true
+
+    - name: Install packer
+      ansible.builtin.include_role:
+        name: ensure-packer
+
+    - name: Install pip
+      ansible.builtin.include_role:
+        name: ensure-pip
+
     - name: Run install script
       ansible.builtin.shell:
         executable: /bin/bash
-        chdir: "{{ working_directory }}"
         cmd: |
           set -e
           set -x
@@ -32,50 +56,13 @@
               software-properties-common \
               unzip
 
+          sudo pip3 install ansible
+
           sudo chmod 0777 /dev/kvm
 
           echo "Host *" | sudo tee /etc/ssh/ssh_config
           echo "    PubkeyAcceptedAlgorithms +ssh-rsa" | sudo tee /etc/ssh/ssh_config
           echo "    HostkeyAlgorithms +ssh-rsa" | sudo tee /etc/ssh/ssh_config
-
-          lsmod
-
-
-# Only required by Zuul CI.
-#
-# - name: Pre roles
-#   hosts: all
-#
-#   vars:
-#     install_packer: false
-#     install_pip: false
-#
-#   roles:
-#     - role: ensure-packer
-#       vars:
-#         packer_version: "1.8.6"
-#       when: install_packer|bool
-#
-#     - role: ensure-pip
-#       when: install_pip|bool
-
-- name: Pre tasks - part 2
-  # hosts: all
-  hosts: localhost
-  connection: local
-
-  vars:
-    ppg_version: "3.1.4"  # packer-provisioner-goss
-    working_directory: "{{ zuul.project.src_dir|default('~') }}"
-
-  tasks:
-    - name: Run install script
-      ansible.builtin.shell:
-        executable: /bin/bash
-        chdir: "{{ working_directory }}"
-        cmd: |
-          set -e
-          set -x
 
           wget \
               -O packer-provisioner-goss.zip \

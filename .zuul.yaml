@@ -1,6 +1,8 @@
 ---
 - job:
     name: k8s-capi-images-build
+    nodeset: ubuntu-jammy-large
+    abstract: true
     parent: base
     pre-run: playbooks/pre.yml
     run: playbooks/build.yml
@@ -13,6 +15,24 @@
     vars:
       kubernetes_version: 126
 
+- job:
+    name: k8s-capi-images-build-127
+    parent: k8s-capi-images-build
+    vars:
+      kubernetes_version: 127
+
+- job:
+    name: k8s-capi-images-build-128
+    parent: k8s-capi-images-build
+    vars:
+      kubernetes_version: 128
+
+- job:
+    name: k8s-capi-images-build-129
+    parent: k8s-capi-images-build
+    vars:
+      kubernetes_version: 129
+
 - project:
     merge-mode: squash-merge
     default-branch: main
@@ -20,10 +40,10 @@
       jobs:
         - flake8
         - yamllint
-    gate:
-      jobs:
-        - flake8
-        - yamllint
+        - k8s-capi-images-build-126
+        - k8s-capi-images-build-127
+        - k8s-capi-images-build-128
+        - k8s-capi-images-build-129
     periodic-daily:
       jobs:
         - flake8
