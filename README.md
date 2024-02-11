@@ -6,15 +6,16 @@ https://image-builder.sigs.k8s.io/capi/capi.html.
 The images are built with the [Image Builder](https://github.com/kubernetes-sigs/image-builder/),
 a collection of cross-provider Kubernetes virtual machine image building utilities.
 
-The following images contain the latest stable releases, which are updated as required.
-This means that the image for version `1.27` contains, for example, version `1.27.3`.
+The following images contain the latest [stable releases](https://kubernetes.io/releases/),
+which are updated as required. This means that the image for version `1.27` contains, for example,
+version `1.27.3`.
 
-| Version | Image URL                                                                                                                                                       |
-|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| v1.29   | [ubuntu-2204-kube-v1.29.qcow2](https://swift.services.a.regiocloud.tech/swift/v1/AUTH_b182637428444b9aa302bb8d5a5a418c/openstack-k8s-capi-images/ubuntu-2204-kube-v1.29/ubuntu-2204-kube-v1.29.qcow2)                 |
-| v1.28   | [ubuntu-2204-kube-v1.28.qcow2](https://swift.services.a.regiocloud.tech/swift/v1/AUTH_b182637428444b9aa302bb8d5a5a418c/openstack-k8s-capi-images/ubuntu-2204-kube-v1.28/ubuntu-2204-kube-v1.28.qcow2)                 |
-| v1.27   | [ubuntu-2204-kube-v1.27.qcow2](https://swift.services.a.regiocloud.tech/swift/v1/AUTH_b182637428444b9aa302bb8d5a5a418c/openstack-k8s-capi-images/ubuntu-2204-kube-v1.27/ubuntu-2204-kube-v1.27.qcow2)                 |
-| v1.26   | [ubuntu-2204-kube-v1.26.qcow2](https://swift.services.a.regiocloud.tech/swift/v1/AUTH_b182637428444b9aa302bb8d5a5a418c/openstack-k8s-capi-images/ubuntu-2204-kube-v1.26/ubuntu-2204-kube-v1.26.qcow2)                 |
+| Version | Image URL                                                                                                                                                                                              | End of life |
+|---------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------|
+| v1.29   | [ubuntu-2204-kube-v1.29.qcow2](https://swift.services.a.regiocloud.tech/swift/v1/AUTH_b182637428444b9aa302bb8d5a5a418c/openstack-k8s-capi-images/ubuntu-2204-kube-v1.29/ubuntu-2204-kube-v1.29.qcow2)  | 2025-02-28  |
+| v1.28   | [ubuntu-2204-kube-v1.28.qcow2](https://swift.services.a.regiocloud.tech/swift/v1/AUTH_b182637428444b9aa302bb8d5a5a418c/openstack-k8s-capi-images/ubuntu-2204-kube-v1.28/ubuntu-2204-kube-v1.28.qcow2)  | 2024-10-28  |
+| v1.27   | [ubuntu-2204-kube-v1.27.qcow2](https://swift.services.a.regiocloud.tech/swift/v1/AUTH_b182637428444b9aa302bb8d5a5a418c/openstack-k8s-capi-images/ubuntu-2204-kube-v1.27/ubuntu-2204-kube-v1.27.qcow2)  | 2024-06-28  |
+| v1.26   | [ubuntu-2204-kube-v1.26.qcow2](https://swift.services.a.regiocloud.tech/swift/v1/AUTH_b182637428444b9aa302bb8d5a5a418c/openstack-k8s-capi-images/ubuntu-2204-kube-v1.26/ubuntu-2204-kube-v1.26.qcow2)  | 2024-02-28  |
 
 ## Ubuntu 22.04
 
