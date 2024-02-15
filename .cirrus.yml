@@ -24,58 +24,65 @@ env:
   MINIO_SECRET_KEY: "ENCRYPTED[f9bca5bdb6d905bb4fbbf3f64df81194ceb970c61917142c8eb74975ec357ffc30de73e4e6bea63b71e0da809bcdb815]"
 
 build_task_template: &BUILD_TASK_TEMPLATE
-  timeout_in: 120m
-  install_script:
-    - while fuser /var/lib/dpkg/lock >/dev/null 2>&1; do sleep 5; done;
-    - while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done;
-    - apt-get update
-    - apt-get install -y git make python3-pip curl jq unzip
+  matrix:
+    - name: Install
+      install_script:
+	- while fuser /var/lib/dpkg/lock >/dev/null 2>&1; do sleep 5; done;
+	- while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done;
+	- apt-get update
+	- apt-get install -y git make python3-pip curl jq unzip
 
-  prepare_script:
-    - git clone https://github.com/kubernetes-sigs/image-builder
-    - cd image-builder/images/capi
-    - export PATH=$PWD/.bin:$HOME/.local/bin:$PATH
-    - make deps-qemu
+    - name: Prepare
+      prepare_script:
+	- git clone https://github.com/kubernetes-sigs/image-builder
+	- cd image-builder/images/capi
+	- export PATH=$PWD/.bin:$HOME/.local/bin:$PATH
+	- make deps-qemu
 
-  build_script:
-    - cd image-builder/images/capi
-    - export PATH=$PWD/.bin:$HOME/.local/bin:$PATH
-    - make build-qemu-ubuntu-2204
+    - name: Build
+      build_script:
+	- cd image-builder/images/capi
+	- export PATH=$PWD/.bin:$HOME/.local/bin:$PATH
+	- make build-qemu-ubuntu-2204
 
-  prepare_push_script:
-    - wget https://dl.min.io/client/mc/release/linux-amd64/mc
-    - chmod +x mc
-    - ./mc alias set minio https://swift.services.a.regiocloud.tech $MINIO_ACCESS_KEY $MINIO_SECRET_KEY
-    - cd image-builder/images/capi/output
-    - find . -type f -execdir bash -c 'x={}; cp $x ${x%.*}.qcow2; mv $x $x.qcow2' \;
-    - find . -type f -execdir bash -c 'x={}; virt-sparsify --in-place $x' \;
-    - find . -type f -execdir bash -c 'x={}; sha256sum $x > $x.CHECKSUM' \;
-    - du -h
+    - name: Prepare push
+      only_if: $BRANCH == "main"
+      prepare_push_script:
+	- wget https://dl.min.io/client/mc/release/linux-amd64/mc
+	- chmod +x mc
+	- ./mc alias set minio https://swift.services.a.regiocloud.tech $MINIO_ACCESS_KEY $MINIO_SECRET_KEY
+	- cd image-builder/images/capi/output
+	- find . -type f -execdir bash -c 'x={}; cp $x ${x%.*}.qcow2; mv $x $x.qcow2' \;
+	- find . -type f -execdir bash -c 'x={}; virt-sparsify --in-place $x' \;
+	- find . -type f -execdir bash -c 'x={}; sha256sum $x > $x.CHECKSUM' \;
+	- du -h
 
-  push_script:
-    - ./mc cp --recursive image-builder/images/capi/output/* minio/openstack-k8s-capi-images
-    - ./mc policy set download minio/openstack-k8s-capi-images
+    - name: Push
+      only_if: $BRANCH == "main"
+      push_script:
+	- ./mc cp --recursive image-builder/images/capi/output/* minio/openstack-k8s-capi-images
+	- ./mc policy set download minio/openstack-k8s-capi-images
 
 build_126_task:
   <<: *BUILD_TASK_TEMPLATE
-  skip: "!changesInclude('extra_vars_126.json')"
+  skip: "!changesInclude('.cirrus.yml', 'extra_vars_126.json')"
   env:
     PACKER_VAR_FILES: ../../../extra_vars_126.json
 
 build_127_task:
   <<: *BUILD_TASK_TEMPLATE
-  skip: "!changesInclude('extra_vars_127.json')"
+  skip: "!changesInclude('.cirrus.yml', 'extra_vars_127.json')"
   env:
     PACKER_VAR_FILES: ../../../extra_vars_127.json
 
 build_128_task:
   <<: *BUILD_TASK_TEMPLATE
-  skip: "!changesInclude('extra_vars_128.json')"
+  skip: "!changesInclude('.cirrus.yml', 'extra_vars_128.json')"
   env:
     PACKER_VAR_FILES: ../../../extra_vars_128.json
 
 build_129_task:
   <<: *BUILD_TASK_TEMPLATE
-  skip: "!changesInclude('extra_vars_129.json')"
+  skip: "!changesInclude('.cirrus.yml', 'extra_vars_129.json')"
   env:
     PACKER_VAR_FILES: ../../../extra_vars_129.json
