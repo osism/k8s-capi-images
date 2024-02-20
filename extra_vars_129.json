@@ -1,5 +1,4 @@
 {
-    "kubernetes_cni_deb_version": "1.3.0-1.1",
     "kubernetes_deb_version": "1.29.2-1.1",
     "kubernetes_semver": "v1.29.2",
     "kubernetes_series": "v1.29",
