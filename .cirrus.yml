@@ -56,12 +56,6 @@ build_task_template: &BUILD_TASK_TEMPLATE
     - ./mc cp --recursive image-builder/images/capi/output/* minio/openstack-k8s-capi-images
     - ./mc policy set download minio/openstack-k8s-capi-images
 
-build_126_task:
-  <<: *BUILD_TASK_TEMPLATE
-  skip: "!changesInclude('extra_vars_126.json')"
-  env:
-    PACKER_VAR_FILES: ../../../extra_vars_126.json
-
 build_127_task:
   <<: *BUILD_TASK_TEMPLATE
   skip: "!changesInclude('extra_vars_127.json')"
