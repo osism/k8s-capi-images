@@ -44,15 +44,17 @@ build_task_template: &BUILD_TASK_TEMPLATE
 
   push_script: |
     if [[ "$CIRRUS_BRANCH" == "main" ]]; then
-      cd image-builder/images/capi/output
+      pushd image-builder/images/capi/output
+      find . -type f -execdir bash -c 'x={}; cp $x ${x%.*}.qcow2; mv $x $x.qcow2' \;
+      find . -type f -execdir bash -c 'x={}; virt-sparsify --in-place $x' \;
+      find . -type f -execdir bash -c 'x={}; echo $(date +%Y%m%d) ubuntu-2204-kube-v$IMAGE_IDENTIFIER/$x > last-$IMAGE_IDENTIFIER' \;
+      find . -name '*.qcow2' -execdir bash -c 'x={}; sha256sum $x > $x.CHECKSUM' \;
+      popd
+
       wget https://dl.min.io/client/mc/release/linux-amd64/mc
       chmod +x mc
       ./mc alias set minio https://swift.services.a.regiocloud.tech $MINIO_ACCESS_KEY $MINIO_SECRET_KEY
-      find . -type f -execdir bash -c 'x={}; cp $x ${x%.*}.qcow2; mv $x $x.qcow2' \;
-      find . -type f -execdir bash -c 'x={}; virt-sparsify --in-place $x' \;
-      find . -type f -execdir bash -c 'x={}; echo $(date +%Y%m%d) ubuntu-2204-kube-v$IMAGE_IDENTIFIER/$x > ../last-$IMAGE_IDENTIFIER' \;
-      find . -type f -execdir bash -c 'x={}; sha256sum $x > $x.CHECKSUM' \;
-      ./mc cp --recursive * minio/openstack-k8s-capi-images
+      ./mc cp --recursive image-builder/images/capi/output/* minio/openstack-k8s-capi-images
       ./mc policy set download minio/openstack-k8s-capi-images
     fi
 
