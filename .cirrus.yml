@@ -45,7 +45,7 @@ build_task_template: &BUILD_TASK_TEMPLATE
   prepare_push_script: |
     pushd image-builder/images/capi/output/ubuntu-2204-kube-v$IMAGE_IDENTIFIER
     find . -type f -execdir bash -c 'x={}; cp $x ${x%.*}.qcow2; mv $x $x.qcow2' \;
-    find . -name '*.qcow2' -execdir bash -c 'x={}; sha256sum $x > $x.CHECKSUM' \;
+    find . -name '*.qcow2' -execdir bash -c 'x={}; sha256sum $(basename $x) > $x.CHECKSUM' \;
     find . -name "*$IMAGE_IDENTIFIER.*.qcow2" -execdir bash -c 'x={}; echo $(date +%Y-%m-%d) ubuntu-2204-kube-v$IMAGE_IDENTIFIER/$(basename $x) > last-$IMAGE_IDENTIFIER' \;
     ls -lah
     popd
