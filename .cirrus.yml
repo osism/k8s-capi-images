@@ -29,6 +29,8 @@ build_task_template: &BUILD_TASK_TEMPLATE
     while fuser /var/lib/dpkg/lock >/dev/null 2>&1; do sleep 5; done;
     while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done;
     apt-get update
+    while fuser /var/lib/dpkg/lock >/dev/null 2>&1; do sleep 5; done;
+    while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done;
     apt-get install -y git make python3-pip curl jq unzip
 
   prepare_script: |
