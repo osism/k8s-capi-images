@@ -1,8 +1,8 @@
 {
     "iso_checksum": "9bc6028870aef3f74f4e16b900008179e78b130e6b0b9a140635434a46aa98b0",
     "iso_url": "https://releases.ubuntu.com/releases/22.04/ubuntu-22.04.5-live-server-amd64.iso",
-    "kubernetes_deb_version": "1.29.12-1.1",
-    "kubernetes_semver": "v1.29.12",
+    "kubernetes_deb_version": "1.29.13-1.1",
+    "kubernetes_semver": "v1.29.13",
     "kubernetes_series": "v1.29",
     "output_directory": "./output/{{user `build_name`}}-kube-{{user `kubernetes_series`}}"
 }
