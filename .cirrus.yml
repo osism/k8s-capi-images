@@ -1,10 +1,4 @@
 ---
-# NOTE: That didn't work, thus use of instance with nested virtualization enabled.
-#
-# container:
-#   image: ubuntu:20.04
-#   kvm: true
-
 compute_engine_instance:
   image_project: cirrus-images
   image: family/docker-kvm
@@ -63,13 +57,6 @@ build_task_template: &BUILD_TASK_TEMPLATE
       ./mc cp --recursive image-builder/images/capi/output/* minio/openstack-k8s-capi-images
       ./mc policy set download minio/openstack-k8s-capi-images
     fi
-
-build_129_task:
-  <<: *BUILD_TASK_TEMPLATE
-  skip: "!changesInclude('extra_vars_129.json', '.cirrus.yml')"
-  env:
-    IMAGE_IDENTIFIER: "1.29"
-    PACKER_VAR_FILES: ../../../extra_vars_129.json
 
 build_130_task:
   <<: *BUILD_TASK_TEMPLATE
