@@ -4,11 +4,16 @@ Images intended for use with Kubernetes CAPI providers. More details on
 https://image-builder.sigs.k8s.io/capi/capi.html.
 
 The images are built with the [Image Builder](https://github.com/kubernetes-sigs/image-builder/),
-a collection of cross-provider Kubernetes virtual machine image building utilities.
+a collection of cross-provider Kubernetes virtual machine image building
+utilities.
+
+When a Kubernetes series changes to EOL status, the corresponding builds
+are deactivated here and only the last version of this series will remain
+available as an image in the future.
 
 The following images contain the latest [stable releases](https://kubernetes.io/releases/),
-which are updated as required. This means that the image for version `1.27` contains, for example,
-version `1.27.3`.
+which are updated as required. This means that the image for version `1.27`
+contains, for example, version `1.27.3`.
 
 | Version | Image URL                                                                                                                                                                                              | End of life                                     |
 |---------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------|
