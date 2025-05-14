@@ -14,10 +14,6 @@
       jobs:
         - flake8
         - yamllint
-    gate:
-      jobs:
-        - flake8
-        - yamllint
     periodic-daily:
       jobs:
         - flake8
