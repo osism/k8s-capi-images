@@ -7,20 +7,10 @@
     required-projects:
       - kubernetes-sigs/image-builder
 
-- job:
-    name: k8s-capi-images-build-126
-    parent: k8s-capi-images-build
-    vars:
-      kubernetes_version: 126
-
 - project:
     merge-mode: squash-merge
     default-branch: main
     check:
-      jobs:
-        - flake8
-        - yamllint
-    gate:
       jobs:
         - flake8
         - yamllint
