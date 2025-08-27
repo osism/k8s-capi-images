@@ -19,6 +19,7 @@ contains, for example, version `1.27.3`.
 
 | Series | Current Version |
 |--------|-----------------|
+| v1.34  | v1.34.0         |
 | v1.33  | v1.33.4         |
 | v1.32  | v1.32.8         |
 | v1.31  | v1.31.12        |
@@ -33,6 +34,8 @@ contains, for example, version `1.27.3`.
 
 | Series | Version  | Image URL                                                                                                                                                                                                     | CHECKSUM URL                                                                                                                                                                                                                  |
 |--------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| v1.34  |          |                                                                                                                                                                                                               |                                                                                                                                                                                                                               |
+|        | v1.34.0  | [ubuntu-2404-kube-v1.34.0.qcow2](https://swift.services.a.regiocloud.tech/swift/v1/AUTH_b182637428444b9aa302bb8d5a5a418c/openstack-k8s-capi-images/ubuntu-2404-kube-v1.34/ubuntu-2404-kube-v1.34.0.qcow2)     | [ubuntu-2404-kube-v1.34.0.qcow2.CHECKSUM](https://swift.services.a.regiocloud.tech/swift/v1/AUTH_b182637428444b9aa302bb8d5a5a418c/openstack-k8s-capi-images/ubuntu-2404-kube-v1.34/ubuntu-2404-kube-v1.34.0.qcow2.CHECKSUM)   |
 | v1.33  |          |                                                                                                                                                                                                               |                                                                                                                                                                                                                               |
 |        | v1.33.4  | [ubuntu-2404-kube-v1.33.4.qcow2](https://swift.services.a.regiocloud.tech/swift/v1/AUTH_b182637428444b9aa302bb8d5a5a418c/openstack-k8s-capi-images/ubuntu-2404-kube-v1.33/ubuntu-2404-kube-v1.33.4.qcow2)     | [ubuntu-2404-kube-v1.33.4.qcow2.CHECKSUM](https://swift.services.a.regiocloud.tech/swift/v1/AUTH_b182637428444b9aa302bb8d5a5a418c/openstack-k8s-capi-images/ubuntu-2404-kube-v1.33/ubuntu-2404-kube-v1.33.4.qcow2.CHECKSUM)   |
 
