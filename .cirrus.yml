@@ -78,3 +78,10 @@ build_133_task:
   env:
     IMAGE_IDENTIFIER: "1.33"
     PACKER_VAR_FILES: ../../../extra_vars_133.json
+
+build_134_task:
+  <<: *BUILD_TASK_TEMPLATE
+  skip: "!changesInclude('extra_vars_134.json', '.cirrus.yml')"
+  env:
+    IMAGE_IDENTIFIER: "1.34"
+    PACKER_VAR_FILES: ../../../extra_vars_134.json
