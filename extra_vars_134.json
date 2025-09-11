@@ -1,8 +1,8 @@
 {
     "iso_checksum": "c3514bf0056180d09376462a7a1b4f213c1d6e8ea67fae5c25099c6fd3d8274b",
     "iso_url": "https://releases.ubuntu.com/releases/noble/ubuntu-24.04.3-live-server-amd64.iso",
-    "kubernetes_deb_version": "1.34.0-1.1",
-    "kubernetes_semver": "v1.34.0",
+    "kubernetes_deb_version": "1.34.1-1.1",
+    "kubernetes_semver": "v1.34.1",
     "kubernetes_series": "v1.34",
     "output_directory": "./output/{{user `build_name`}}-kube-{{user `kubernetes_series`}}"
 }
