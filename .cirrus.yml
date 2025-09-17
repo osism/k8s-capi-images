@@ -82,6 +82,14 @@ build_133_task:
     DISTRO_VERSION: "2404"
     PACKER_VAR_FILES: ../../../extra_vars_133.json
 
+build_133_gardener_task:
+  <<: *BUILD_TASK_TEMPLATE
+  skip: "!changesInclude('extra_vars_133_gardener.json', '.cirrus.yml')"
+  env:
+    IMAGE_IDENTIFIER: "1.33"
+    DISTRO_VERSION: "2404"
+    PACKER_VAR_FILES: ../../../extra_vars_133_gardener.json
+
 build_134_task:
   <<: *BUILD_TASK_TEMPLATE
   skip: "!changesInclude('extra_vars_134.json', '.cirrus.yml')"
