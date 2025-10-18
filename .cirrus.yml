@@ -14,8 +14,8 @@ env:
   DEBIAN_FRONTEND: noninteractive
   HOME: "$CIRRUS_WORKING_DIR"
   PACKER_TMP_DIR: "$CIRRUS_WORKING_DIR/.packer.d"
-  MINIO_ACCESS_KEY: "ENCRYPTED[f1e5f3b5e72297422e2ec817e8833a2e8d69fe75e3db78a7e4ba20581578752d6f6f61d1ed1d1254b6b54b7ae8bc6af9]"
-  MINIO_SECRET_KEY: "ENCRYPTED[adba7892ef6bb89524abc57e38b401e77a268d129c44cd792a9dd064b8dcb0cf050dd4e906059d0f94ae4ac92d8e869b]"
+  MINIO_ACCESS_KEY: "ENCRYPTED[77f033c741c72cde32b377c0bef41897e741b4bbf1a6a4d1e9ce51ab5c7b1a49086d9e88fa072c4e82dac483ca484667]"
+  MINIO_SECRET_KEY: "ENCRYPTED[f4ebc46ccbdf36946f38c6c881ef69ee689af6a62318116857d46e2c37cedc8a8845e9d6f15390a37774d8f240f0a5f5]"
 
 build_task_template: &BUILD_TASK_TEMPLATE
   timeout_in: 120m
@@ -54,10 +54,10 @@ build_task_template: &BUILD_TASK_TEMPLATE
     if [[ "$CIRRUS_BRANCH" == "main" ]]; then
       wget https://dl.min.io/client/mc/release/linux-amd64/mc
       chmod +x mc
-      ./mc alias set minio https://swift.services.a.regiocloud.tech $MINIO_ACCESS_KEY $MINIO_SECRET_KEY
-      ./mc cp last-$IMAGE_IDENTIFIER minio/openstack-k8s-capi-images
-      ./mc cp --recursive image-builder/images/capi/output/* minio/openstack-k8s-capi-images
-      ./mc policy set download minio/openstack-k8s-capi-images
+      ./mc alias set minio https://nbg1.your-objectstorage.com $MINIO_ACCESS_KEY $MINIO_SECRET_KEY
+      ./mc cp last-$IMAGE_IDENTIFIER minio/osism/openstack-k8s-capi-images/
+      ./mc cp --recursive image-builder/images/capi/output/* minio/osism/openstack-k8s-capi-images/
+      ./mc policy set download minio/osism/openstack-k8s-capi-images/
     fi
 
 build_131_task:
