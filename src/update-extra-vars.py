@@ -1,10 +1,13 @@
 #!/usr/bin/python3
 #
 # Script to fetch the latest version of kubernetes by the given file.
+# Also updates the README.md Kubernetes Versions table.
 #
 ###############################################################################
 
 import json
+import os
+import re
 import sys
 import urllib.parse
 import urllib.request
@@ -16,6 +19,8 @@ import urllib.request
 
 github_api = "https://api.github.com/repos/kubernetes/kubernetes/tags"
 file = sys.argv[1]
+script_dir = os.path.dirname(os.path.abspath(__file__))
+readme_path = os.path.join(script_dir, "..", "README.md")
 
 
 ###############################################################################
@@ -116,10 +121,49 @@ def dump_file(file, data):
         fp.write("\n")
 
 
+def update_readme(series, new_version):
+    """Update the Kubernetes Versions table in README.md with the new version."""
+    if not os.path.exists(readme_path):
+        print(f"Warning: README.md not found at {readme_path}")
+        return
+
+    with open(readme_path, "r") as f:
+        content = f.read()
+
+    # Pattern to match the table row for this series
+    # Matches: | v1.32  | v1.32.8         | [ubuntu-...
+    # Captures the version and trailing spaces together to calculate total width
+    pattern = rf"(\| {re.escape(series)}\s+\| )(v[\d.]+\s+)(\|)"
+
+    def replace_version(match):
+        prefix = match.group(1)
+        old_version_with_spaces = match.group(2)
+        suffix = match.group(3)
+        # Keep the same total width for the column
+        total_width = len(old_version_with_spaces)
+        new_version_padded = new_version.ljust(total_width)
+        return prefix + new_version_padded + suffix
+
+    new_content = re.sub(pattern, replace_version, content)
+
+    if new_content != content:
+        with open(readme_path, "w") as f:
+            f.write(new_content)
+        print(f"Updated README.md: {series} -> {new_version}")
+    else:
+        print(f"README.md already up to date for {series}")
+
+
 ###############################################################################
 # Main
 ###############################################################################
 
 original_data = load_file(file)
 updated_data = update_version(original_data)
+
 dump_file(file, updated_data)
+
+# Always update README.md to ensure it's in sync with extra_vars
+update_readme(
+    updated_data.get("kubernetes_series"), updated_data.get("kubernetes_semver")
+)
