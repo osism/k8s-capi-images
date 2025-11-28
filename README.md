@@ -19,40 +19,53 @@ contains, for example, version `1.27.3`.
 
 | Series | Current Version | Image URL                                                                                                                                                | End of Active Support                           | End of Maintenance Support                      |
 |--------|-----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------|-------------------------------------------------|
-| v1.34  | v1.34.0         | [ubuntu-2404-kube-v1.34.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.34/ubuntu-2404-kube-v1.34.qcow2)  | [2026-12-28](https://endoflife.date/kubernetes) | [2027-04-28](https://endoflife.date/kubernetes) |
-| v1.33  | v1.33.4         | [ubuntu-2404-kube-v1.33.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.33/ubuntu-2404-kube-v1.33.qcow2)  | [2026-04-28](https://endoflife.date/kubernetes) | [2026-06-28](https://endoflife.date/kubernetes) |
-| v1.32  | v1.32.8         | [ubuntu-2204-kube-v1.32.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.qcow2)  | [2025-12-28](https://endoflife.date/kubernetes) | [2026-02-28](https://endoflife.date/kubernetes) |
+| v1.34  | v1.34.2         | [ubuntu-2404-kube-v1.34.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.34/ubuntu-2404-kube-v1.34.qcow2)  | [2026-12-28](https://endoflife.date/kubernetes) | [2027-04-28](https://endoflife.date/kubernetes) |
+| v1.33  | v1.33.6         | [ubuntu-2404-kube-v1.33.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.33/ubuntu-2404-kube-v1.33.qcow2)  | [2026-04-28](https://endoflife.date/kubernetes) | [2026-06-28](https://endoflife.date/kubernetes) |
+| v1.32  | v1.32.10        | [ubuntu-2204-kube-v1.32.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.qcow2)  | [2025-12-28](https://endoflife.date/kubernetes) | [2026-02-28](https://endoflife.date/kubernetes) |
 
-## Ubuntu 24.04
+## Determining Current Versions
 
-| Series | Version  | Image URL                                                                                                                                                                                                     | CHECKSUM URL                                                                                                                                                                                                                  |
-|--------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| v1.34  |          |                                                                                                                                                                                                               |                                                                                                                                                                                                                               |
-|        | v1.34.0  | [ubuntu-2404-kube-v1.34.0.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.34/ubuntu-2404-kube-v1.34.0.qcow2)     | [ubuntu-2404-kube-v1.34.0.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.34/ubuntu-2404-kube-v1.34.0.qcow2.CHECKSUM)   |
-| v1.33  |          |                                                                                                                                                                                                               |                                                                                                                                                                                                                               |
-|        | v1.33.4  | [ubuntu-2404-kube-v1.33.4.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.33/ubuntu-2404-kube-v1.33.4.qcow2)     | [ubuntu-2404-kube-v1.33.4.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.33/ubuntu-2404-kube-v1.33.4.qcow2.CHECKSUM)   |
+For each Kubernetes series, a `last-X` file is published to the object storage during the
+CI build process. These files contain the build date and the path to the latest image
+for that series.
 
-## Ubuntu 22.04
+The files are available at:
 
-| Series | Version  | Image URL                                                                                                                                                                                                     | CHECKSUM URL                                                                                                                                                                                                                  |
-|--------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| v1.33  |          |                                                                                                                                                                                                               |                                                                                                                                                                                                                               |
-|        | v1.33.3  | [ubuntu-2204-kube-v1.33.3.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.33/ubuntu-2204-kube-v1.33.3.qcow2)     | [ubuntu-2204-kube-v1.33.3.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.33/ubuntu-2204-kube-v1.33.3.qcow2.CHECKSUM)   |
-|        | v1.33.2  | [ubuntu-2204-kube-v1.33.2.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.33/ubuntu-2204-kube-v1.33.2.qcow2)     | [ubuntu-2204-kube-v1.33.2.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.33/ubuntu-2204-kube-v1.33.2.qcow2.CHECKSUM)   |
-|        | v1.33.1  | [ubuntu-2204-kube-v1.33.1.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.33/ubuntu-2204-kube-v1.33.1.qcow2)     | [ubuntu-2204-kube-v1.33.1.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.33/ubuntu-2204-kube-v1.33.1.qcow2.CHECKSUM)   |
-|        | v1.33.0  | [ubuntu-2204-kube-v1.33.0.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.33/ubuntu-2204-kube-v1.33.0.qcow2)     | [ubuntu-2204-kube-v1.33.0.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.33/ubuntu-2204-kube-v1.33.0.qcow2.CHECKSUM)   |
-| v1.32  |          |                                                                                                                                                                                                               |                                                                                                                                                                                                                               |
-|        | v1.32.8  | [ubuntu-2204-kube-v1.32.8.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.8.qcow2)     | [ubuntu-2204-kube-v1.32.8.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.8.qcow2.CHECKSUM)   |
-|        | v1.32.7  | [ubuntu-2204-kube-v1.32.7.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.7.qcow2)     | [ubuntu-2204-kube-v1.32.7.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.7.qcow2.CHECKSUM)   |
-|        | v1.32.6  | [ubuntu-2204-kube-v1.32.6.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.6.qcow2)     | [ubuntu-2204-kube-v1.32.6.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.6.qcow2.CHECKSUM)   |
-|        | v1.32.5  | [ubuntu-2204-kube-v1.32.5.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.5.qcow2)     | [ubuntu-2204-kube-v1.32.5.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.5.qcow2.CHECKSUM)   |
-|        | v1.32.4  | [ubuntu-2204-kube-v1.32.4.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.4.qcow2)     | [ubuntu-2204-kube-v1.32.4.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.4.qcow2.CHECKSUM)   |
-|        | v1.32.3  | [ubuntu-2204-kube-v1.32.3.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.3.qcow2)     | [ubuntu-2204-kube-v1.32.3.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.3.qcow2.CHECKSUM)   |
-|        | v1.32.2  | [ubuntu-2204-kube-v1.32.2.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.2.qcow2)     | [ubuntu-2204-kube-v1.32.2.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.2.qcow2.CHECKSUM)   |
-|        | v1.32.1  | [ubuntu-2204-kube-v1.32.1.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.1.qcow2)     | [ubuntu-2204-kube-v1.32.1.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.1.qcow2.CHECKSUM)   |
-|        | v1.32.0  | [ubuntu-2204-kube-v1.32.0.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.0.qcow2)     | [ubuntu-2204-kube-v1.32.0.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.0.qcow2.CHECKSUM)   |
+```
+https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.32
+https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.33
+https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.34
+```
+
+Each file contains a single line in the format:
+
+```
+YYYY-MM-DD ubuntu-XXXX-kube-vX.XX/ubuntu-XXXX-kube-vX.XX.X.qcow2
+```
+
+For example, `last-1.32` might contain:
+
+```
+2025-11-15 ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.10.qcow2
+```
+
+This tells you that:
+- The build was created on 2025-11-15
+- The current version is v1.32.10
+- The image uses Ubuntu 22.04
+- The full download URL is: `https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.10.qcow2`
+
+To fetch the current version programmatically:
+
+```bash
+curl -s https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.32
+```
 
 ## Archived
+
+This section contains images for Kubernetes versions that have reached End of Life (EOL).
+These images are no longer updated but remain available for download. Only the final
+patch version of each EOL series is kept.
 
 | Series | Version  | Image URL                                                                                                                                                 | CHECKSUM URL                                                                                                                                                              |
 |--------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -67,8 +80,3 @@ contains, for example, version `1.27.3`.
 | v1.27  |          |                                                                                                                                                           |                                                                                                                                                                           |
 |        | v1.27.15 | [ubuntu-2204-kube-v1.27.15.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.27/ubuntu-2204-kube-v1.27.15.qcow2) | [ubuntu-2204-kube-v1.27.15.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.27/ubuntu-2204-kube-v1.27.15.qcow2.CHECKSUM) |
 
-## Helpful prompts
-
-* Add the current Kubernetes versions as defined by kubernetes_semver in the files named like
-  extra_vars_130.json to the README.md file. Update the Current Kubernetes Versions table as well
-  as the Ubuntu 22.04 table and the Ubuntu 24.04 table. Use Ubuntu 24.04 for Kubernetes >= 1.33.4.
