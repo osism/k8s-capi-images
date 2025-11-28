@@ -60,14 +60,6 @@ build_task_template: &BUILD_TASK_TEMPLATE
       ./mc policy set download minio/osism/openstack-k8s-capi-images/
     fi
 
-build_131_task:
-  <<: *BUILD_TASK_TEMPLATE
-  skip: "!changesInclude('extra_vars_131.json', '.cirrus.yml')"
-  env:
-    IMAGE_IDENTIFIER: "1.31"
-    DISTRO_VERSION: "2204"
-    PACKER_VAR_FILES: ../../../extra_vars_131.json
-
 build_132_task:
   <<: *BUILD_TASK_TEMPLATE
   skip: "!changesInclude('extra_vars_132.json', '.cirrus.yml')"
