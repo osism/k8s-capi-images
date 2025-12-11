@@ -19,8 +19,8 @@ contains, for example, version `1.27.3`.
 
 | Series | Current Version | Image URL                                                                                                                                                | End of Active Support                           | End of Maintenance Support                      |
 |--------|-----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------|-------------------------------------------------|
-| v1.34  | v1.34.2         | [ubuntu-2404-kube-v1.34.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.34/ubuntu-2404-kube-v1.34.qcow2)  | [2026-12-28](https://endoflife.date/kubernetes) | [2027-04-28](https://endoflife.date/kubernetes) |
-| v1.33  | v1.33.6         | [ubuntu-2404-kube-v1.33.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.33/ubuntu-2404-kube-v1.33.qcow2)  | [2026-04-28](https://endoflife.date/kubernetes) | [2026-06-28](https://endoflife.date/kubernetes) |
+| v1.34  | v1.34.3         | [ubuntu-2404-kube-v1.34.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.34/ubuntu-2404-kube-v1.34.qcow2)  | [2026-12-28](https://endoflife.date/kubernetes) | [2027-04-28](https://endoflife.date/kubernetes) |
+| v1.33  | v1.33.7         | [ubuntu-2404-kube-v1.33.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.33/ubuntu-2404-kube-v1.33.qcow2)  | [2026-04-28](https://endoflife.date/kubernetes) | [2026-06-28](https://endoflife.date/kubernetes) |
 | v1.32  | v1.32.10        | [ubuntu-2204-kube-v1.32.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.qcow2)  | [2025-12-28](https://endoflife.date/kubernetes) | [2026-02-28](https://endoflife.date/kubernetes) |
 
 ## Determining Current Versions
