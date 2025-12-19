@@ -42,9 +42,10 @@ build_task_template: &BUILD_TASK_TEMPLATE
     pushd image-builder/images/capi/output/ubuntu-$DISTRO_VERSION-kube-v$IMAGE_IDENTIFIER
     find . -type f -execdir bash -c 'x={}; cp $x ${x%.*}.qcow2; mv $x $x.qcow2' \;
     find . -name '*.qcow2' -execdir bash -c 'x={}; sha256sum $(basename $x) > $x.CHECKSUM' \;
-    #find . -name "*$IMAGE_IDENTIFIER.*.qcow2" -execdir bash -c 'x={}; echo $(date +%Y-%m-%d) ubuntu-$DISTRO_VERSION-kube-v$IMAGE_IDENTIFIER/$(basename $x) > last-$IMAGE_IDENTIFIER' \;
-    FIRST_QCOW2=$(find . -name '*.qcow2' -print -quit 2>/dev/null)
-    echo "$(date +%Y-%m-%d) ubuntu-$DISTRO_VERSION-kube-v$IMAGE_IDENTIFIER/$(basename "$FIRST_QCOW2")" > "last-$IMAGE_IDENTIFIER"
+    VARS_FILE_SUFFIX=${IMAGE_IDENTIFIER//.}
+    VARS_FILE_SUFFIX=${VARS_FILE_SUFFIX//-/_}
+    KUBERNETES_SEMVER=$(jq -r '.kubernetes_semver' $CIRRUS_WORKING_DIR/extra_vars_${VARS_FILE_SUFFIX}.json)
+    echo "$(date +%Y-%m-%d) ubuntu-$DISTRO_VERSION-kube-v$IMAGE_IDENTIFIER/ubuntu-$DISTRO_VERSION-kube-$KUBERNETES_SEMVER.qcow2" > "last-$IMAGE_IDENTIFIER"
     ls -lah
     popd
     mv image-builder/images/capi/output/ubuntu-$DISTRO_VERSION-kube-v$IMAGE_IDENTIFIER/last-$IMAGE_IDENTIFIER .
@@ -91,3 +92,11 @@ build_134_task:
     IMAGE_IDENTIFIER: "1.34"
     DISTRO_VERSION: "2404"
     PACKER_VAR_FILES: ../../../extra_vars_134.json
+
+build_135_task:
+  <<: *BUILD_TASK_TEMPLATE
+  skip: "!changesInclude('extra_vars_135.json', '.cirrus.yml')"
+  env:
+    IMAGE_IDENTIFIER: "1.35"
+    DISTRO_VERSION: "2404"
+    PACKER_VAR_FILES: ../../../extra_vars_135.json
