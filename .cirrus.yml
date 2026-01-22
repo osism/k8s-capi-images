@@ -25,7 +25,7 @@ build_task_template: &BUILD_TASK_TEMPLATE
     apt-get update
     while fuser /var/lib/dpkg/lock >/dev/null 2>&1; do sleep 5; done;
     while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done;
-    apt-get install -y git make python3-pip curl jq unzip
+    apt-get install -y git make python3-pip curl jq unzip libguestfs-tools
 
   prepare_script: |
     git clone https://github.com/kubernetes-sigs/image-builder
@@ -50,6 +50,12 @@ build_task_template: &BUILD_TASK_TEMPLATE
     popd
     mv image-builder/images/capi/output/ubuntu-$DISTRO_VERSION-kube-v$IMAGE_IDENTIFIER/last-$IMAGE_IDENTIFIER .
     cat last-$IMAGE_IDENTIFIER
+
+  sparsify_script: |
+    pushd image-builder/images/capi/output/ubuntu-2204-kube-v$IMAGE_IDENTIFIER
+    find . -name '*.qcow2' -execdir bash -c 'x={}; virt-sparsify --in-place $x' \;
+    ls -lah
+    popd
 
   push_script: |
     if [[ "$CIRRUS_BRANCH" == "main" ]]; then
