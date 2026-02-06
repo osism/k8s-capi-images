@@ -63,6 +63,40 @@ To fetch the current version programmatically:
 curl -s https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.32
 ```
 
+## Generating Download URLs for All Patch Versions
+
+The script `scripts/generate-k8s-image-urls.sh` generates download URLs for all
+patch versions of a given Kubernetes minor version. It fetches the latest patch
+version from the `last-X` file and outputs URLs for every patch from `.0` up to
+the latest.
+
+```bash
+# Generate URLs for v1.35 (default)
+bash scripts/generate-k8s-image-urls.sh
+
+# Generate URLs for a specific minor version
+bash scripts/generate-k8s-image-urls.sh 1.33
+```
+
+The minimum supported version is `1.32`.
+
+Example output:
+
+```
+Fetching https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.35 ...
+Content: 2025-12-19 ubuntu-2404-kube-v1.35/ubuntu-2404-kube-v1.35.0.qcow2
+
+Latest version: v1.35.0
+
+=========================================
+ Download URLs (v1.35.0 - v1.35.0)
+=========================================
+
+https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.35/ubuntu-2404-kube-v1.35.0.qcow2
+
+Total: 1 images
+```
+
 ## Archived
 
 This section contains images for Kubernetes versions that have reached End of Life (EOL).
