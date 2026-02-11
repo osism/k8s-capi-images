@@ -52,7 +52,7 @@ build_task_template: &BUILD_TASK_TEMPLATE
     cat last-$IMAGE_IDENTIFIER
 
   sparsify_script: |
-    pushd image-builder/images/capi/output/ubuntu-2204-kube-v$IMAGE_IDENTIFIER
+    pushd image-builder/images/capi/output/ubuntu-$DISTRO_VERSION-kube-v$IMAGE_IDENTIFIER
     find . -name '*.qcow2' -execdir bash -c 'x={}; virt-sparsify --in-place $x' \;
     ls -lah
     popd
