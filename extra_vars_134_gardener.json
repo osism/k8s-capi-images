@@ -3,9 +3,9 @@
     "containerd_version": "1.7.30",
     "iso_checksum": "c3514bf0056180d09376462a7a1b4f213c1d6e8ea67fae5c25099c6fd3d8274b",
     "iso_url": "https://releases.ubuntu.com/releases/noble/ubuntu-24.04.3-live-server-amd64.iso",
-    "kubernetes_deb_version": "1.33.8-1.1",
-    "kubernetes_semver": "v1.33.8",
-    "kubernetes_series": "v1.33",
+    "kubernetes_deb_version": "1.34.4-1.1",
+    "kubernetes_semver": "v1.34.4",
+    "kubernetes_series": "v1.34",
     "output_directory": "./output/{{user `build_name`}}-kube-{{user `kubernetes_series`}}-gardener",
     "runc_sha256": "c5d4995c5aec204d7e1827d9d9a6b45042602736f7f415f484252e576dcdac28",
     "runc_version": "1.4.0"
