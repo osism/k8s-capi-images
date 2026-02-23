@@ -83,9 +83,7 @@ The minimum supported version is `1.32`.
 Example output:
 
 ```
-Fetching https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.35 ...
-Content: 2025-12-19 ubuntu-2404-kube-v1.35/ubuntu-2404-kube-v1.35.0.qcow2
-
+Fetching latest patch version for 1.35 ...
 Latest version: v1.35.0
 
 =========================================
@@ -96,6 +94,28 @@ https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-
 
 Total: 1 images
 ```
+
+## Verifying Image Checksums
+
+The script also supports a `--verify` mode that downloads the `.CHECKSUM` file from the
+server and verifies a local image against it. If the image is not present locally, it will
+be downloaded automatically.
+
+```bash
+# Verify the latest patch version of 1.35 (downloads the image if not present)
+bash scripts/generate-k8s-image-urls.sh --verify 1.35
+
+# Verify an exact version
+bash scripts/generate-k8s-image-urls.sh --verify 1.35.1
+
+# Verify and delete the downloaded image afterwards
+bash scripts/generate-k8s-image-urls.sh --verify 1.35 --cleanup
+```
+
+The `--cleanup` flag only removes the image if it was downloaded during the verification.
+Files that already existed locally are never deleted.
+
+The script exits with code `0` on success and `1` on checksum mismatch.
 
 ## Archived
 
