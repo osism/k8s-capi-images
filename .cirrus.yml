@@ -41,7 +41,6 @@ build_task_template: &BUILD_TASK_TEMPLATE
   prepare_push_script: |
     pushd image-builder/images/capi/output/ubuntu-$DISTRO_VERSION-kube-v$IMAGE_IDENTIFIER
     find . -type f -execdir bash -c 'x={}; cp $x ${x%.*}.qcow2; mv $x $x.qcow2' \;
-    find . -name '*.qcow2' -execdir bash -c 'x={}; sha256sum $(basename $x) > $x.CHECKSUM' \;
     VARS_FILE_SUFFIX=${IMAGE_IDENTIFIER//.}
     VARS_FILE_SUFFIX=${VARS_FILE_SUFFIX//-/_}
     KUBERNETES_SEMVER=$(jq -r '.kubernetes_semver' $CIRRUS_WORKING_DIR/extra_vars_${VARS_FILE_SUFFIX}.json)
@@ -54,6 +53,7 @@ build_task_template: &BUILD_TASK_TEMPLATE
   sparsify_script: |
     pushd image-builder/images/capi/output/ubuntu-$DISTRO_VERSION-kube-v$IMAGE_IDENTIFIER
     find . -name '*.qcow2' -execdir bash -c 'x={}; virt-sparsify --in-place $x' \;
+    find . -name '*.qcow2' -execdir bash -c 'x={}; sha256sum $(basename $x) > $x.CHECKSUM' \;
     ls -lah
     popd
 
