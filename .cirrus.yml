@@ -14,8 +14,8 @@ env:
   DEBIAN_FRONTEND: noninteractive
   HOME: "$CIRRUS_WORKING_DIR"
   PACKER_TMP_DIR: "$CIRRUS_WORKING_DIR/.packer.d"
-  MINIO_ACCESS_KEY: "ENCRYPTED[77f033c741c72cde32b377c0bef41897e741b4bbf1a6a4d1e9ce51ab5c7b1a49086d9e88fa072c4e82dac483ca484667]"
-  MINIO_SECRET_KEY: "ENCRYPTED[f4ebc46ccbdf36946f38c6c881ef69ee689af6a62318116857d46e2c37cedc8a8845e9d6f15390a37774d8f240f0a5f5]"
+  S3_ACCESS_KEY: "ENCRYPTED[77f033c741c72cde32b377c0bef41897e741b4bbf1a6a4d1e9ce51ab5c7b1a49086d9e88fa072c4e82dac483ca484667]"
+  S3_SECRET_KEY: "ENCRYPTED[f4ebc46ccbdf36946f38c6c881ef69ee689af6a62318116857d46e2c37cedc8a8845e9d6f15390a37774d8f240f0a5f5]"
 
 build_task_template: &BUILD_TASK_TEMPLATE
   timeout_in: 120m
@@ -59,12 +59,14 @@ build_task_template: &BUILD_TASK_TEMPLATE
 
   push_script: |
     if [[ "$CIRRUS_BRANCH" == "main" ]]; then
-      wget https://dl.min.io/client/mc/release/linux-amd64/mc
-      chmod +x mc
-      ./mc alias set minio https://nbg1.your-objectstorage.com $MINIO_ACCESS_KEY $MINIO_SECRET_KEY
-      ./mc cp last-$IMAGE_IDENTIFIER minio/osism/openstack-k8s-capi-images/
-      ./mc cp --recursive image-builder/images/capi/output/* minio/osism/openstack-k8s-capi-images/
-      ./mc policy set download minio/osism/openstack-k8s-capi-images/
+      curl -sSfL https://rclone.org/install.sh | bash
+      export RCLONE_CONFIG_S3_TYPE=s3
+      export RCLONE_CONFIG_S3_PROVIDER=Other
+      export RCLONE_CONFIG_S3_ENDPOINT=https://nbg1.your-objectstorage.com
+      export RCLONE_CONFIG_S3_ACCESS_KEY_ID=$S3_ACCESS_KEY
+      export RCLONE_CONFIG_S3_SECRET_ACCESS_KEY=$S3_SECRET_KEY
+      rclone copyto last-$IMAGE_IDENTIFIER s3:osism/openstack-k8s-capi-images/last-$IMAGE_IDENTIFIER
+      rclone copy image-builder/images/capi/output/ s3:osism/openstack-k8s-capi-images/
     fi
 
 build_132_task:
