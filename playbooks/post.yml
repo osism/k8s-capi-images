@@ -17,10 +17,11 @@
           find . -type f -execdir bash -c 'x={}; cp $x ${x%.*}.qcow2; mv $x $x.qcow2' \;
           curl -sSfL https://rclone.org/install.sh | bash
           export RCLONE_CONFIG_S3_TYPE=s3
-          export RCLONE_CONFIG_S3_PROVIDER=Other
+          export RCLONE_CONFIG_S3_PROVIDER=Ceph
           export RCLONE_CONFIG_S3_ENDPOINT=https://minio.services.osism.tech
           export RCLONE_CONFIG_S3_ACCESS_KEY_ID={{ s3.S3_ACCESS_KEY | trim }}
           export RCLONE_CONFIG_S3_SECRET_ACCESS_KEY={{ s3.S3_SECRET_KEY | trim }}
+          export RCLONE_CONFIG_S3_ACL=public-read
           rclone copy image-builder/images/capi/output/ s3:openstack-k8s-capi-images/
       when: upload_image|bool
       no_log: true
