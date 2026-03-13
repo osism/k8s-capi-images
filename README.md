@@ -22,7 +22,6 @@ contains, for example, version `1.27.3`.
 | v1.35  | v1.35.2         | [ubuntu-2404-kube-v1.35.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.35/ubuntu-2404-kube-v1.35.qcow2)  | 2027-02-28  |
 | v1.34  | v1.34.5         | [ubuntu-2404-kube-v1.34.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.34/ubuntu-2404-kube-v1.34.qcow2)  | 2026-10-27  |
 | v1.33  | v1.33.9         | [ubuntu-2404-kube-v1.33.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.33/ubuntu-2404-kube-v1.33.qcow2)  | 2026-06-28  |
-| v1.32  | v1.32.13        | [ubuntu-2204-kube-v1.32.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.qcow2)  | 2026-02-28  |
 
 ## Determining Current Versions
 
@@ -33,7 +32,6 @@ for that series.
 The files are available at:
 
 ```
-https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.32
 https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.33
 https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.34
 https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.35
@@ -45,22 +43,22 @@ Each file contains a single line in the format:
 YYYY-MM-DD ubuntu-XXXX-kube-vX.XX/ubuntu-XXXX-kube-vX.XX.X.qcow2
 ```
 
-For example, `last-1.32` might contain:
+For example, `last-1.33` might contain:
 
 ```
-2025-11-15 ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.10.qcow2
+2025-11-15 ubuntu-2404-kube-v1.33/ubuntu-2404-kube-v1.33.9.qcow2
 ```
 
 This tells you that:
 - The build was created on 2025-11-15
-- The current version is v1.32.10
-- The image uses Ubuntu 22.04
-- The full download URL is: `https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.10.qcow2`
+- The current version is v1.33.9
+- The image uses Ubuntu 24.04
+- The full download URL is: `https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.33/ubuntu-2404-kube-v1.33.9.qcow2`
 
 To fetch the current version programmatically:
 
 ```bash
-curl -s https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.32
+curl -s https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.33
 ```
 
 ## Generating Download URLs for All Patch Versions
@@ -78,7 +76,7 @@ bash scripts/generate-k8s-image-urls.sh
 bash scripts/generate-k8s-image-urls.sh 1.33
 ```
 
-The minimum supported version is `1.32`.
+The minimum supported version is `1.33`.
 
 Example output:
 
@@ -125,6 +123,8 @@ patch version of each EOL series is kept.
 
 | Series | Version  | Image URL                                                                                                                                                 | CHECKSUM URL                                                                                                                                                              |
 |--------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| v1.32  |          |                                                                                                                                                           |                                                                                                                                                                           |
+|        | v1.32.13 | [ubuntu-2204-kube-v1.32.13.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.13.qcow2) | [ubuntu-2204-kube-v1.32.13.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.13.qcow2.CHECKSUM) |
 | v1.31  |          |                                                                                                                                                                                                               |                                                                                                                                                                                                                               |
 |        | v1.31.14 | [ubuntu-2204-kube-v1.31.14.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.31/ubuntu-2204-kube-v1.31.14.qcow2)   | [ubuntu-2204-kube-v1.31.14.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.31/ubuntu-2204-kube-v1.31.14.qcow2.CHECKSUM) |
 | v1.30  |          |                                                                                                                                                           |                                                                                                                                                                           |
