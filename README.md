@@ -19,6 +19,7 @@ contains, for example, version `1.27.3`.
 
 | Series | Current Version | Image URL                                                                                                                                                | End of Life |
 |--------|-----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|-------------|
+| v1.36  | v1.36.0         | [ubuntu-2404-kube-v1.36.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.36/ubuntu-2404-kube-v1.36.qcow2)  | 2027-06-28  |
 | v1.35  | v1.35.4         | [ubuntu-2404-kube-v1.35.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.35/ubuntu-2404-kube-v1.35.qcow2)  | 2027-02-28  |
 | v1.34  | v1.34.7         | [ubuntu-2404-kube-v1.34.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.34/ubuntu-2404-kube-v1.34.qcow2)  | 2026-10-27  |
 | v1.33  | v1.33.11        | [ubuntu-2404-kube-v1.33.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.33/ubuntu-2404-kube-v1.33.qcow2)  | 2026-06-28  |
@@ -35,6 +36,7 @@ The files are available at:
 https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.33
 https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.34
 https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.35
+https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.36
 ```
 
 Each file contains a single line in the format:
