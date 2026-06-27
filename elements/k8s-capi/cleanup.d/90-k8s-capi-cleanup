@@ -1,0 +1,14 @@
+#!/bin/bash
+# Runs in the chroot at the end of the build. Removes the build scaffolding so
+# the policy-rc.d, the Ansible venv and the pip/galaxy caches do not ship in the
+# image. The image-builder roles' own outputs (binaries, configs, pre-pulled
+# images) live elsewhere on the root filesystem and are kept.
+
+if [ "${DIB_DEBUG_TRACE:-0}" -gt 0 ]; then
+    set -x
+fi
+set -euo pipefail
+
+rm -f /usr/sbin/policy-rc.d
+rm -rf /tmp/in_target.d/image-builder
+rm -rf /root/.ansible /root/.cache/pip
