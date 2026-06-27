@@ -1,0 +1,59 @@
+#!/bin/bash
+# Runs in the chroot. Drives image-builder's roles through wrapper.yml with the
+# build shims on PATH and a policy-rc.d in place, so daemon-touching tasks
+# succeed in the systemd-less chroot while still writing their config files.
+
+if [ "${DIB_DEBUG_TRACE:-0}" -gt 0 ]; then
+    set -x
+fi
+set -euo pipefail
+
+STAGE=/tmp/in_target.d/image-builder
+
+# Stop apt from starting services while packages are installed in the chroot.
+cat > /usr/sbin/policy-rc.d <<'EOF'
+#!/bin/sh
+exit 101
+EOF
+chmod 0755 /usr/sbin/policy-rc.d
+
+export ANSIBLE_CONFIG="${STAGE}/ansible.cfg"
+export PATH="${STAGE}/shims:${STAGE}/venv/bin:${PATH}"
+
+cd "${STAGE}"
+
+# The override is loaded last so its Kubernetes/containerd/runc versions win.
+# containerd_service_url, packer_builder_type and packer_build_name are the
+# Packer user-vars the roles need that are not in the config files. python_path
+# is intentionally not passed: wrapper.yml omits PYTHONPATH via default(omit),
+# because an empty value would add the staging dir to root's sys.path.
+ansible-playbook -i 'localhost,' -c local ansible/wrapper.yml \
+    -e @config/common.json \
+    -e @config/containerd.json \
+    -e @config/cni.json \
+    -e @config/kubernetes.json \
+    -e @config/wasm-shims.json \
+    -e @config/additional_components.json \
+    -e @config/ecr_credential_provider.json \
+    -e @override.json \
+    -e packer_builder_type=openstack \
+    -e packer_build_name=openstack \
+    -e 'containerd_service_url=https://raw.githubusercontent.com/containerd/containerd/refs/tags/v{{ containerd_version }}/containerd.service'
+
+# image-builder's containerd role downloads containerd.service over HTTPS with no
+# checksum and installs it as the root-run containerd unit on every node. Gate the
+# shipped unit against the known-good upstream hashes so a tampered or moved tag
+# cannot inject an arbitrary systemd unit into the image. Extend the allowlist
+# when the pinned containerd version changes.
+unit=/etc/systemd/system/containerd.service
+actual="$(sha256sum "${unit}" | awk '{print $1}')"
+case "${actual}" in
+    # containerd 1.7.x (gardener overrides)
+    68dc82b2e67ecb77c8ae7f49ce9681380e80977a1f261a8653e535932cf6400d) ;;
+    # containerd 2.2.2 (image-builder default)
+    1941362cbaa89dd591b99c32b050d82c583d3cd2e5fa63085d7017457ec5fca8) ;;
+    *)
+        echo "ERROR: ${unit} sha256 ${actual} is not in the pinned allowlist" >&2
+        exit 1
+        ;;
+esac
