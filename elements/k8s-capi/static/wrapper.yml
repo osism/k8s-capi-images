@@ -1,0 +1,86 @@
+# Wrapper play for the diskimage-builder chroot.
+#
+# It mirrors image-builder's images/capi/ansible/node.yml play header (the same
+# hosts/become/vars/environment) and runs the same core roles in the same order
+# -- node (which pulls in setup) -> providers -> containerd -> kubernetes ->
+# sysprep -- so the roles are reused unchanged rather than reimplemented.
+#
+# The only difference from node.yml is the manual containerd start/stop bracket
+# around the kubernetes role: the chroot has no running systemd, so containerd is
+# launched by hand for the kubeadm offline image pre-pull and stopped afterwards.
+# node.yml's optional, gated-off includes (custom roles, load_additional_components,
+# ecr_credential_provider) are dropped because their variables are not loaded.
+---
+- name: Provision node
+  hosts: all
+  become: true
+  vars:
+    system: linux
+    arch_uname: "{{ ansible_facts['architecture'] }}"
+    arch: "{{ {'x86_64': 'amd64', 'amd64': 'amd64', 'aarch64': 'arm64', 'arm64': 'arm64', 'ppc64le': 'ppc64le'}.get(arch_uname, 'unsupported') }}"
+
+  tasks:
+    - name: Include node role
+      ansible.builtin.include_role:
+        name: node
+    - name: Include providers role
+      ansible.builtin.include_role:
+        name: providers
+    - name: Include containerd role
+      ansible.builtin.include_role:
+        name: containerd
+
+    - name: Pre-pull Kubernetes images with a build-time containerd
+      block:
+        - name: Start containerd in the background for the offline image pre-pull
+          ansible.builtin.shell: |
+            setsid /usr/local/bin/containerd --config /etc/containerd/config.toml \
+              </dev/null >/var/log/containerd-build.log 2>&1 &
+          args:
+            executable: /bin/bash
+          changed_when: true
+        - name: Wait for the containerd socket
+          ansible.builtin.wait_for:
+            path: /var/run/containerd/containerd.sock
+            timeout: 60
+
+        - name: Include kubernetes role
+          ansible.builtin.include_role:
+            name: kubernetes
+      always:
+        - name: Reap the build-time containerd before teardown
+          ansible.builtin.shell: |
+            set -u
+            # Stop containerd, then wait for it to actually exit so its overlay
+            # snapshot mounts and content store are released before sysprep and
+            # DIB's chroot unmount run. Escalate to SIGKILL if it outlives ~30s.
+            pkill -TERM -f '/usr/local/bin/containerd' || true
+            for _ in $(seq 30); do
+                pgrep -f '/usr/local/bin/containerd' >/dev/null 2>&1 || break
+                sleep 1
+            done
+            if pgrep -f '/usr/local/bin/containerd' >/dev/null 2>&1; then
+                pkill -KILL -f '/usr/local/bin/containerd' || true
+                rm -f /var/run/containerd/containerd.sock
+            fi
+          args:
+            executable: /bin/bash
+          changed_when: true
+        - name: Wait for the containerd socket to be released
+          ansible.builtin.wait_for:
+            path: /var/run/containerd/containerd.sock
+            state: absent
+            timeout: 30
+
+    - name: Include sysprep role
+      ansible.builtin.include_role:
+        name: sysprep
+
+  environment:
+    http_proxy: "{{ http_proxy | default('') }}"
+    https_proxy: "{{ https_proxy | default('') }}"
+    no_proxy: "{{ no_proxy | default('') }}"
+    HTTP_PROXY: "{{ http_proxy | default('') }}"
+    HTTPS_PROXY: "{{ https_proxy | default('') }}"
+    NO_PROXY: "{{ no_proxy | default('') }}"
+    PYTHONPATH: "{{ python_path | default(omit) }}"
