@@ -9,6 +9,7 @@ fi
 set -euo pipefail
 
 STAGE=/tmp/in_target.d/image-builder
+VENV=/opt/image-builder-venv
 
 # Stop apt from starting services while packages are installed in the chroot.
 cat > /usr/sbin/policy-rc.d <<'EOF'
@@ -18,7 +19,7 @@ EOF
 chmod 0755 /usr/sbin/policy-rc.d
 
 export ANSIBLE_CONFIG="${STAGE}/ansible.cfg"
-export PATH="${STAGE}/shims:${STAGE}/venv/bin:${PATH}"
+export PATH="${STAGE}/shims:${VENV}/bin:${PATH}"
 
 cd "${STAGE}"
 
