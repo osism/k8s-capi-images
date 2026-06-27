@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 
-for filename in $(echo extra_vars_*.json); do
-    python3 src/update-extra-vars.py $filename;
+for filename in overrides/*.json; do
+    python3 scripts/update-extra-vars.py "$filename"
 done
