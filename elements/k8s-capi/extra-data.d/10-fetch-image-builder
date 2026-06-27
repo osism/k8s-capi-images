@@ -1,0 +1,98 @@
+#!/bin/bash
+# Runs outside the chroot. Fetches kubernetes-sigs/image-builder at the pinned
+# ref and stages everything the in-chroot Ansible run needs under
+# $TMP_HOOKS_PATH/image-builder, which appears as /tmp/in_target.d/image-builder
+# inside the chroot.
+
+if [ "${DIB_DEBUG_TRACE:-0}" -gt 0 ]; then
+    set -x
+fi
+set -euo pipefail
+
+_ELEM="$(cd "$(dirname "$0")/.." && pwd)"
+
+if [ -z "${DIB_K8S_CAPI_OVERRIDE:-}" ]; then
+    echo "ERROR: DIB_K8S_CAPI_OVERRIDE is not set; point it at an overrides/*.json file." >&2
+    exit 1
+fi
+if [ ! -f "${DIB_K8S_CAPI_OVERRIDE}" ]; then
+    echo "ERROR: DIB_K8S_CAPI_OVERRIDE=${DIB_K8S_CAPI_OVERRIDE} does not exist." >&2
+    exit 1
+fi
+
+STAGE="${TMP_HOOKS_PATH}/image-builder"
+rm -rf "${STAGE}"
+mkdir -p "${STAGE}/config"
+
+CLONE="$(mktemp -d)"
+trap 'rm -rf "${CLONE}"' EXIT
+
+# Pin by immutable commit SHA, never a mutable tag/branch: the cloned roles run
+# as root on the build host and are baked into every node image, so a moved
+# upstream ref would be arbitrary code execution. A blobless --no-checkout clone
+# can check out an arbitrary commit without trusting a ref name.
+echo "Cloning kubernetes-sigs/image-builder at ${DIB_K8S_IMAGE_BUILDER_REF} ..."
+git clone --filter=blob:none --no-checkout \
+    https://github.com/kubernetes-sigs/image-builder "${CLONE}"
+git -C "${CLONE}" -c advice.detachedHead=false checkout "${DIB_K8S_IMAGE_BUILDER_REF}"
+
+_CAPI="${CLONE}/images/capi"
+
+# Reuse image-builder's roles unchanged, alongside our wrapper play so role
+# resolution finds roles/ next to the playbook.
+cp -a "${_CAPI}/ansible" "${STAGE}/ansible"
+cp -a "${_CAPI}/ansible.cfg" "${STAGE}/ansible.cfg"
+cp -a "${_ELEM}/static/wrapper.yml" "${STAGE}/ansible/wrapper.yml"
+
+# The role-input config files image-builder loads for a node build (minus the
+# Packer-only goss/ansible-args plumbing).
+for f in common containerd cni kubernetes wasm-shims additional_components \
+    ecr_credential_provider; do
+    cp -a "${_CAPI}/packer/config/${f}.json" "${STAGE}/config/${f}.json"
+done
+
+cp -a "${_ELEM}/static/shims" "${STAGE}/shims"
+chmod +x "${STAGE}/shims/"*
+cp -a "${DIB_K8S_CAPI_OVERRIDE}" "${STAGE}/override.json"
+
+# Normalize the config JSONs so a plain ansible-playbook run matches Packer's
+# variable handling: rewrite Packer {{ user `x` }} to Ansible {{ x }} and turn
+# JSON null into "" (e.g. containerd_additional_settings is b64decoded and would
+# fail on None).
+python3 - "${STAGE}/config/"*.json <<'PYEOF'
+import json
+import pathlib
+import re
+import sys
+
+pat = re.compile(r"\{\{\s*user\s*`([A-Za-z0-9_]+)`\s*\}\}")
+
+
+def norm(value):
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return pat.sub(r"{{ \1 }}", value)
+    return value
+
+
+for arg in sys.argv[1:]:
+    path = pathlib.Path(arg)
+    data = json.loads(path.read_text())
+    data = {key: norm(val) for key, val in data.items()}
+    path.write_text(json.dumps(data, indent=2) + "\n")
+PYEOF
+
+# Pin the exact ansible-core version image-builder uses at this ref. Fail loudly
+# instead of guessing a default if detection breaks (renamed variable or moved
+# file), so the build can never silently run on a mismatched ansible-core.
+ABV="$(grep -oE '_version_ansible_core="[0-9.]+"' \
+    "${_CAPI}/hack/utils.sh" \
+    | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)"
+if [ -z "${ABV}" ]; then
+    echo "ERROR: could not detect ansible-core version from image-builder hack/utils.sh" >&2
+    exit 1
+fi
+echo "${ABV}" > "${STAGE}/ansible-core-version"
+
+echo "Staged image-builder (${DIB_K8S_IMAGE_BUILDER_REF}) for the chroot run."
