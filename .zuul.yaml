@@ -1,11 +1,229 @@
 ---
+# The ACCESS_KEY/SECRET_KEY values below are placeholders that base64-decode to
+# "REPLACE_WITH_ZUUL_ENCRYPTED_..." and only exist to keep this Zuul config
+# valid. A maintainer holding the object-storage credentials MUST regenerate
+# them for this project before the publish jobs can upload, for example:
+#   echo -n "<ACCESS_KEY>" | zuul-client encrypt --tenant <tenant> \
+#     --project osism/k8s-capi-images --secret-name SECRET_K8S_CAPI_IMAGES \
+#     --field ACCESS_KEY
+# and likewise for SECRET_KEY, pasting the !encrypted/pkcs1-oaep output here.
+- secret:
+    name: SECRET_K8S_CAPI_IMAGES
+    data:
+      ACCESS_KEY: !encrypted/pkcs1-oaep
+        - UkVQTEFDRV9XSVRIX1pVVUxfRU5DUllQVEVEX0FDQ0VTU19LRVk=
+      SECRET_KEY: !encrypted/pkcs1-oaep
+        - UkVQTEFDRV9XSVRIX1pVVUxfRU5DUllQVEVEX1NFQ1JFVF9LRVk=
+
 - job:
-    name: k8s-capi-images-build
+    name: abstract-k8s-capi-images-build
+    abstract: true
     parent: base
+    nodeset: ubuntu-noble-large
     pre-run: playbooks/pre.yml
     run: playbooks/build.yml
-    required-projects:
-      - kubernetes-sigs/image-builder
+    timeout: 7200
+    vars:
+      upload_image: false
+
+- job:
+    name: abstract-k8s-capi-images-publish
+    abstract: true
+    parent: abstract-k8s-capi-images-build
+    vars:
+      upload_image: true
+
+- job:
+    name: k8s-capi-images-build-v1.33
+    parent: abstract-k8s-capi-images-build
+    vars:
+      kubernetes_version: v1.33
+      variant: ""
+    files: &files_v1_33
+      - ^overrides/v1\.33\.json$
+      - ^elements/k8s-capi/.*
+      - ^playbooks/.*
+      - ^requirements\.txt$
+
+- job:
+    name: k8s-capi-images-build-v1.33-gardener
+    parent: abstract-k8s-capi-images-build
+    vars:
+      kubernetes_version: v1.33
+      variant: gardener
+    files: &files_v1_33_gardener
+      - ^overrides/v1\.33-gardener\.json$
+      - ^elements/k8s-capi/.*
+      - ^playbooks/.*
+      - ^requirements\.txt$
+
+- job:
+    name: k8s-capi-images-build-v1.34
+    parent: abstract-k8s-capi-images-build
+    vars:
+      kubernetes_version: v1.34
+      variant: ""
+    files: &files_v1_34
+      - ^overrides/v1\.34\.json$
+      - ^elements/k8s-capi/.*
+      - ^playbooks/.*
+      - ^requirements\.txt$
+
+- job:
+    name: k8s-capi-images-build-v1.34-gardener
+    parent: abstract-k8s-capi-images-build
+    vars:
+      kubernetes_version: v1.34
+      variant: gardener
+    files: &files_v1_34_gardener
+      - ^overrides/v1\.34-gardener\.json$
+      - ^elements/k8s-capi/.*
+      - ^playbooks/.*
+      - ^requirements\.txt$
+
+- job:
+    name: k8s-capi-images-build-v1.35
+    parent: abstract-k8s-capi-images-build
+    vars:
+      kubernetes_version: v1.35
+      variant: ""
+    files: &files_v1_35
+      - ^overrides/v1\.35\.json$
+      - ^elements/k8s-capi/.*
+      - ^playbooks/.*
+      - ^requirements\.txt$
+
+- job:
+    name: k8s-capi-images-build-v1.35-gardener
+    parent: abstract-k8s-capi-images-build
+    vars:
+      kubernetes_version: v1.35
+      variant: gardener
+    files: &files_v1_35_gardener
+      - ^overrides/v1\.35-gardener\.json$
+      - ^elements/k8s-capi/.*
+      - ^playbooks/.*
+      - ^requirements\.txt$
+
+- job:
+    name: k8s-capi-images-build-v1.36
+    parent: abstract-k8s-capi-images-build
+    vars:
+      kubernetes_version: v1.36
+      variant: ""
+    files: &files_v1_36
+      - ^overrides/v1\.36\.json$
+      - ^elements/k8s-capi/.*
+      - ^playbooks/.*
+      - ^requirements\.txt$
+
+- job:
+    name: k8s-capi-images-build-v1.36-gardener
+    parent: abstract-k8s-capi-images-build
+    vars:
+      kubernetes_version: v1.36
+      variant: gardener
+    files: &files_v1_36_gardener
+      - ^overrides/v1\.36-gardener\.json$
+      - ^elements/k8s-capi/.*
+      - ^playbooks/.*
+      - ^requirements\.txt$
+
+- job:
+    name: k8s-capi-images-publish-v1.33
+    parent: abstract-k8s-capi-images-publish
+    vars:
+      kubernetes_version: v1.33
+      variant: ""
+    files: *files_v1_33
+    secrets:
+      - name: secret
+        secret: SECRET_K8S_CAPI_IMAGES
+        pass-to-parent: true
+
+- job:
+    name: k8s-capi-images-publish-v1.33-gardener
+    parent: abstract-k8s-capi-images-publish
+    vars:
+      kubernetes_version: v1.33
+      variant: gardener
+    files: *files_v1_33_gardener
+    secrets:
+      - name: secret
+        secret: SECRET_K8S_CAPI_IMAGES
+        pass-to-parent: true
+
+- job:
+    name: k8s-capi-images-publish-v1.34
+    parent: abstract-k8s-capi-images-publish
+    vars:
+      kubernetes_version: v1.34
+      variant: ""
+    files: *files_v1_34
+    secrets:
+      - name: secret
+        secret: SECRET_K8S_CAPI_IMAGES
+        pass-to-parent: true
+
+- job:
+    name: k8s-capi-images-publish-v1.34-gardener
+    parent: abstract-k8s-capi-images-publish
+    vars:
+      kubernetes_version: v1.34
+      variant: gardener
+    files: *files_v1_34_gardener
+    secrets:
+      - name: secret
+        secret: SECRET_K8S_CAPI_IMAGES
+        pass-to-parent: true
+
+- job:
+    name: k8s-capi-images-publish-v1.35
+    parent: abstract-k8s-capi-images-publish
+    vars:
+      kubernetes_version: v1.35
+      variant: ""
+    files: *files_v1_35
+    secrets:
+      - name: secret
+        secret: SECRET_K8S_CAPI_IMAGES
+        pass-to-parent: true
+
+- job:
+    name: k8s-capi-images-publish-v1.35-gardener
+    parent: abstract-k8s-capi-images-publish
+    vars:
+      kubernetes_version: v1.35
+      variant: gardener
+    files: *files_v1_35_gardener
+    secrets:
+      - name: secret
+        secret: SECRET_K8S_CAPI_IMAGES
+        pass-to-parent: true
+
+- job:
+    name: k8s-capi-images-publish-v1.36
+    parent: abstract-k8s-capi-images-publish
+    vars:
+      kubernetes_version: v1.36
+      variant: ""
+    files: *files_v1_36
+    secrets:
+      - name: secret
+        secret: SECRET_K8S_CAPI_IMAGES
+        pass-to-parent: true
+
+- job:
+    name: k8s-capi-images-publish-v1.36-gardener
+    parent: abstract-k8s-capi-images-publish
+    vars:
+      kubernetes_version: v1.36
+      variant: gardener
+    files: *files_v1_36_gardener
+    secrets:
+      - name: secret
+        secret: SECRET_K8S_CAPI_IMAGES
+        pass-to-parent: true
 
 - project:
     merge-mode: squash-merge
@@ -14,7 +232,29 @@
       jobs:
         - flake8
         - yamllint
-    periodic-daily:
+        - k8s-capi-images-build-v1.33
+        - k8s-capi-images-build-v1.33-gardener
+        - k8s-capi-images-build-v1.34
+        - k8s-capi-images-build-v1.34-gardener
+        - k8s-capi-images-build-v1.35
+        - k8s-capi-images-build-v1.35-gardener
+        - k8s-capi-images-build-v1.36
+        - k8s-capi-images-build-v1.36-gardener
+    post:
       jobs:
-        - flake8
-        - yamllint
+        - k8s-capi-images-publish-v1.33:
+            branches: main
+        - k8s-capi-images-publish-v1.33-gardener:
+            branches: main
+        - k8s-capi-images-publish-v1.34:
+            branches: main
+        - k8s-capi-images-publish-v1.34-gardener:
+            branches: main
+        - k8s-capi-images-publish-v1.35:
+            branches: main
+        - k8s-capi-images-publish-v1.35-gardener:
+            branches: main
+        - k8s-capi-images-publish-v1.36:
+            branches: main
+        - k8s-capi-images-publish-v1.36-gardener:
+            branches: main
