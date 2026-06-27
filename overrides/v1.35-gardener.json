@@ -1,0 +1,7 @@
+{
+    "containerd_version": "1.7.30",
+    "kubernetes_deb_version": "1.35.5-1.1",
+    "kubernetes_semver": "v1.35.5",
+    "kubernetes_series": "v1.35",
+    "runc_version": "1.4.0"
+}
