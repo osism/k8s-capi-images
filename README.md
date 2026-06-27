@@ -3,9 +3,11 @@
 Images intended for use with Kubernetes CAPI providers. More details on
 https://image-builder.sigs.k8s.io/capi/capi.html.
 
-The images are built with the [Image Builder](https://github.com/kubernetes-sigs/image-builder/),
-a collection of cross-provider Kubernetes virtual machine image building
-utilities.
+The images are built with [diskimage-builder](https://docs.openstack.org/diskimage-builder/latest/),
+driven by the custom `k8s-capi` element under `elements/`. The element
+reuses the upstream [Image Builder](https://github.com/kubernetes-sigs/image-builder/)
+Ansible roles, pinned to an immutable commit, so the resulting
+`ubuntu-2404-kube-vX.YY` qcow2 images match what Image Builder produces.
 
 When a Kubernetes series changes to EOL status, the corresponding builds
 are deactivated here and only the last version of this series will remain
@@ -14,6 +16,29 @@ available as an image in the future.
 The following images contain the latest [stable releases](https://kubernetes.io/releases/),
 which are updated as required. This means that the image for version `1.27`
 contains, for example, version `1.27.3`.
+
+## Building images
+
+Each Kubernetes series and its gardener variant is described by an override
+file under `overrides/`, for example `overrides/v1.33.json` or
+`overrides/v1.33-gardener.json`.
+
+To build an image locally on a Linux host with qemu/libguestfs:
+
+```bash
+# Build the latest v1.33 image (the qcow2 lands in output/)
+./build-local.sh v1.33
+
+# Build the gardener variant
+./build-local.sh v1.33-gardener
+```
+
+In CI, Zuul builds every series and variant on the `check` pipeline and, on
+the `post` pipeline after a merge to `main`, publishes the qcow2 image, its
+`.CHECKSUM`, and the `last-X` pointer to the object storage. Gardener
+variants are published under the parallel `…-gardener` names. The published
+layout and naming are unchanged, so the URLs below and
+`scripts/generate-k8s-image-urls.sh` keep resolving.
 
 ## Kubernetes Versions
 
