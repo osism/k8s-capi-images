@@ -1,0 +1,4 @@
+#!/bin/sh
+# Build-time udevadm shim: there is no udev daemon to query or trigger in the
+# chroot. No-op so tasks that poke udev report success.
+exit 0

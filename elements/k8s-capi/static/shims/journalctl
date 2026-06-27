@@ -1,0 +1,4 @@
+#!/bin/sh
+# Build-time journalctl shim: there is no journal to rotate or vacuum in the
+# chroot. No-op so sysprep's log-cleanup tasks report success.
+exit 0
