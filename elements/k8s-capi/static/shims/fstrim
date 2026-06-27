@@ -1,0 +1,4 @@
+#!/bin/sh
+# Build-time fstrim shim: discarding blocks is meaningless in the chroot. No-op
+# so the fstrim service task reports success.
+exit 0

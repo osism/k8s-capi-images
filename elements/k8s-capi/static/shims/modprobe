@@ -1,0 +1,5 @@
+#!/bin/sh
+# Build-time modprobe shim: kernel modules cannot be loaded in the chroot, but
+# the roles still persist them to /etc/modules-load.d. No-op so the load step
+# reports success.
+exit 0

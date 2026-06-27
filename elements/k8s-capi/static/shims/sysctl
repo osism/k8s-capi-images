@@ -1,0 +1,5 @@
+#!/bin/sh
+# Build-time sysctl shim: runtime kernel parameters cannot be applied in the
+# chroot, but the ansible.posix.sysctl module still writes the sysctl file. No-op
+# so the apply/reload step reports success.
+exit 0

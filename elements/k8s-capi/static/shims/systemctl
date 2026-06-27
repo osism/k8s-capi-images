@@ -1,0 +1,45 @@
+#!/bin/sh
+# Build-time systemctl shim for the systemd-less diskimage-builder chroot.
+#
+# image-builder's roles drive systemctl to enable/start daemons, but the chroot
+# has no running init. This shim lets those tasks succeed while still producing
+# the right on-disk state:
+#   * enable/disable are performed offline (SYSTEMD_OFFLINE=1) so units such as
+#     containerd and kubelet end up enabled in the image;
+#   * lifecycle verbs (start/stop/restart/daemon-reload/...) are no-ops;
+#   * status queries answer benignly so service_facts/package_facts keep working.
+set -u
+
+REAL=/bin/systemctl
+[ -x "$REAL" ] || REAL=/usr/bin/systemctl
+
+# The subcommand is the first non-option argument.
+cmd=""
+for arg in "$@"; do
+    case "$arg" in
+        -*) ;;
+        *) cmd="$arg"; break ;;
+    esac
+done
+
+case "$cmd" in
+    enable|disable|reenable|preset|preset-all|mask|unmask|link|set-default)
+        # Offline file operations work without a running manager, but they must
+        # actually succeed: `enable` has to create the *.wants/ symlinks, or
+        # containerd and kubelet would ship disabled and never start on the node.
+        # Propagate the real exit code instead of swallowing it.
+        exec env SYSTEMD_OFFLINE=1 "$REAL" "$@"
+        ;;
+    is-active|is-failed)
+        echo "inactive"
+        exit 0
+        ;;
+    is-enabled|status|show|cat|list-units|list-unit-files|list-timers|get-default)
+        SYSTEMD_OFFLINE=1 "$REAL" "$@" 2>/dev/null || true
+        exit 0
+        ;;
+    *)
+        # start, stop, restart, reload, daemon-reload, daemon-reexec, ... -> no-op.
+        exit 0
+        ;;
+esac
