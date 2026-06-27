@@ -1,27 +1,99 @@
 ---
-- name: Build image
-  # hosts: all
-  hosts: localhost
-  connection: local
-
-  vars:
-    distro: "{{ lookup('ansible.builtin.env', 'DISTRO', default='ubuntu') }}"
-    distro_version: "{{ lookup('ansible.builtin.env', 'DISTRO_VERSION', default='2204') }}"
-    extra_vars_openstack_directory: "{{ repo_path }}/osism/k8s-capi-images"
-    kubernetes_version: "{{ lookup('ansible.builtin.env', 'KUBERNETES_VERSION', default='124') }}"
-    repo_path: "{{ ansible_user_dir|default('~') }}/src/github.com"
-    working_directory: "{{ repo_path }}/kubernetes-sigs/image-builder/images/capi"
+- name: Build and publish a CAPI image
+  hosts: all
 
   tasks:
-    - name: Run build script
+    - name: Resolve the override file for this build
+      ansible.builtin.set_fact:
+        suffix: "{{ ('-' + variant) if variant | default('') else '' }}"
+        override_file: "overrides/{{ kubernetes_version | default('v1.33') }}{{ ('-' + variant) if variant | default('') else '' }}.json"
+
+    - name: Derive the image name components from the override file
+      ansible.builtin.set_fact:
+        image_dir: "ubuntu-2404-kube-{{ override_data.kubernetes_series }}{{ suffix }}"
+        image_basename: "ubuntu-2404-kube-{{ override_data.kubernetes_semver }}{{ suffix }}"
+        last_file: "last-{{ override_data.kubernetes_series | regex_replace('^v', '') }}{{ suffix }}"
+      vars:
+        override_data: "{{ lookup('file', playbook_dir ~ '/../' ~ override_file) | from_json }}"
+
+    - name: Validate the derived image name components
+      ansible.builtin.assert:
+        that:
+          - image_dir is match('^[A-Za-z0-9._-]+$')
+          - image_basename is match('^[A-Za-z0-9._-]+$')
+          - last_file is match('^[A-Za-z0-9._-]+$')
+        fail_msg: >-
+          Refusing to build: image name components derived from the override file
+          contain characters outside [A-Za-z0-9._-]
+          (image_dir={{ image_dir }}, image_basename={{ image_basename }}, last_file={{ last_file }}).
+
+    - name: Build the image with disk-image-create
       ansible.builtin.shell:
         executable: /bin/bash
-        chdir: "{{ working_directory }}"
+        chdir: "{{ zuul.project.src_dir }}"
         cmd: |
           set -e
           set -x
 
-          export PACKER_VAR_FILES={{ extra_vars_openstack_directory }}/extra_vars_openstack_{{ distro }}_{{ kubernetes_version }}.json
-          export PATH=~/.local/bin:$PATH
+          source /tmp/venv/bin/activate
+          export ELEMENTS_PATH=./elements
+          export DIB_RELEASE=noble
 
-          make build-qemu-{{ distro }}-{{ distro_version }}
+          export DIB_K8S_CAPI_OVERRIDE
+          DIB_K8S_CAPI_OVERRIDE="$(readlink -f "${OVERRIDE_FILE}")"
+
+          FILE="${IMAGE_BASENAME}.qcow2"
+
+          mkdir -p output
+          disk-image-create -a amd64 -t qcow2 \
+              -o "output/${IMAGE_BASENAME}" \
+              ubuntu vm growroot openssh-server k8s-capi
+
+          cd output
+          sha256sum "${FILE}" > "${FILE}.CHECKSUM"
+          printf '%s %s/%s\n' "$(date +%F)" "${IMAGE_DIR}" "${FILE}" > "${LAST_FILE}"
+      environment:
+        OVERRIDE_FILE: "{{ override_file }}"
+        IMAGE_DIR: "{{ image_dir }}"
+        IMAGE_BASENAME: "{{ image_basename }}"
+        LAST_FILE: "{{ last_file }}"
+      changed_when: true
+
+    - name: Write the rclone configuration with the object-storage credentials
+      ansible.builtin.copy:
+        dest: "{{ zuul.project.src_dir }}/.rclone.conf"
+        mode: "0600"
+        content: |
+          [s3]
+          type = s3
+          provider = Ceph
+          endpoint = https://nbg1.your-objectstorage.com
+          region = nbg1
+          access_key_id = {{ secret.ACCESS_KEY | trim }}
+          secret_access_key = {{ secret.SECRET_KEY | trim }}
+          acl = public-read
+          no_check_bucket = true
+      when: upload_image | default(false) | bool
+      no_log: true
+
+    - name: Publish the image to the object storage
+      ansible.builtin.shell:
+        executable: /bin/bash
+        chdir: "{{ zuul.project.src_dir }}"
+        cmd: |
+          set -e
+          set -x
+
+          FILE="${IMAGE_BASENAME}.qcow2"
+
+          cd output
+          rclone copyto "${FILE}" "s3:osism/openstack-k8s-capi-images/${IMAGE_DIR}/${FILE}"
+          rclone copyto "${FILE}.CHECKSUM" "s3:osism/openstack-k8s-capi-images/${IMAGE_DIR}/${FILE}.CHECKSUM"
+          rclone copyto "${LAST_FILE}" "s3:osism/openstack-k8s-capi-images/${LAST_FILE}"
+      environment:
+        RCLONE_CONFIG: "{{ zuul.project.src_dir }}/.rclone.conf"
+        IMAGE_DIR: "{{ image_dir }}"
+        IMAGE_BASENAME: "{{ image_basename }}"
+        LAST_FILE: "{{ last_file }}"
+      when: upload_image | default(false) | bool
+      changed_when: true
