@@ -1,0 +1,24 @@
+#!/bin/bash
+# Runs in the chroot. Builds a throwaway virtualenv with the ansible-core version
+# image-builder pins at the chosen ref and the collections its roles import.
+
+if [ "${DIB_DEBUG_TRACE:-0}" -gt 0 ]; then
+    set -x
+fi
+set -euo pipefail
+
+STAGE=/tmp/in_target.d/image-builder
+ANSIBLE_CORE_VERSION="$(cat "${STAGE}/ansible-core-version" 2>/dev/null || true)"
+if [ -z "${ANSIBLE_CORE_VERSION}" ]; then
+    echo "ERROR: ${STAGE}/ansible-core-version is missing or empty" >&2
+    exit 1
+fi
+
+python3 -m venv "${STAGE}/venv"
+"${STAGE}/venv/bin/pip" install --no-cache-dir "ansible-core==${ANSIBLE_CORE_VERSION}"
+# Pin collections to exact versions so two builds from the same source produce
+# the same image and a yanked or tampered release cannot silently change what
+# runs as root in the chroot. Both are compatible with ansible-core 2.18.
+"${STAGE}/venv/bin/ansible-galaxy" collection install \
+    'community.general:==12.0.0' \
+    'ansible.posix:==2.2.0'
