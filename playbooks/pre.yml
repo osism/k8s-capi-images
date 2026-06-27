@@ -1,85 +1,41 @@
 ---
-- name: Pre tasks - part 1
-  # hosts: all
-  hosts: localhost
-  connection: local
+- name: Prepare the build host
+  hosts: all
 
   vars:
-    working_directory: "{{ zuul.project.src_dir|default('~') }}"
+    python_venv_dir: /tmp/venv
+
+  roles:
+    - role: ensure-pip
 
   tasks:
-    - name: Run install script
-      ansible.builtin.shell:
-        executable: /bin/bash
-        chdir: "{{ working_directory }}"
-        cmd: |
-          set -e
-          set -x
+    - name: Install host packages required by diskimage-builder
+      become: true
+      ansible.builtin.apt:
+        name:
+          - debootstrap
+          - dosfstools
+          - gdisk
+          - kpartx
+          - parted
+          - qemu-utils
+          - rclone
+          - squashfs-tools
+          - zip
+        update_cache: true
 
-          while fuser /var/lib/dpkg/lock >/dev/null 2>&1; do sleep 5; done;
-          while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done;
+    - name: Install Python requirements into a virtualenv
+      ansible.builtin.pip:
+        requirements: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}/requirements.txt"
+        virtualenv: "{{ python_venv_dir }}"
+        virtualenv_command: python3 -m venv
 
-          sudo apt-get update
-          sudo apt-get install -y \
-              curl \
-              git \
-              jq \
-              libguestfs-tools \
-              make \
-              patch \
-              python3-pip \
-              qemu-kvm \
-              software-properties-common \
-              unzip
-
-          sudo chmod 0777 /dev/kvm
-
-          echo "Host *" | sudo tee /etc/ssh/ssh_config
-          echo "    PubkeyAcceptedAlgorithms +ssh-rsa" | sudo tee /etc/ssh/ssh_config
-          echo "    HostkeyAlgorithms +ssh-rsa" | sudo tee /etc/ssh/ssh_config
-
-          lsmod
-
-
-# Only required by Zuul CI.
-#
-# - name: Pre roles
-#   hosts: all
-#
-#   vars:
-#     install_packer: false
-#     install_pip: false
-#
-#   roles:
-#     - role: ensure-packer
-#       vars:
-#         packer_version: "1.8.6"
-#       when: install_packer|bool
-#
-#     - role: ensure-pip
-#       when: install_pip|bool
-
-- name: Pre tasks - part 2
-  # hosts: all
-  hosts: localhost
-  connection: local
-
-  vars:
-    ppg_version: "3.1.4"  # packer-provisioner-goss
-    working_directory: "{{ zuul.project.src_dir|default('~') }}"
-
-  tasks:
-    - name: Run install script
-      ansible.builtin.shell:
-        executable: /bin/bash
-        chdir: "{{ working_directory }}"
-        cmd: |
-          set -e
-          set -x
-
-          wget \
-              -O packer-provisioner-goss.zip \
-              https://github.com/YaleUniversity/packer-provisioner-goss/releases/download/v{{ ppg_version }}/packer-provisioner-goss-v{{ ppg_version }}-linux-amd64.zip
-          unzip packer-provisioner-goss.zip -d /tmp
-          mkdir -p ~/.packer.d/plugins
-          mv /tmp/packer-provisioner-goss ~/.packer.d/plugins
+    - name: Create the zuul-output directories
+      ansible.builtin.file:
+        path: "{{ ansible_user_dir }}/zuul-output/{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - artifacts
+        - docs
+        - logs
