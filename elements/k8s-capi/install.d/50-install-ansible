@@ -7,18 +7,22 @@ if [ "${DIB_DEBUG_TRACE:-0}" -gt 0 ]; then
 fi
 set -euo pipefail
 
+# The staging dir is bind-mounted read-only into the chroot, so the venv cannot
+# live under it; create it on the writable root filesystem and drop it again in
+# cleanup.d so it never ships in the image.
 STAGE=/tmp/in_target.d/image-builder
+VENV=/opt/image-builder-venv
 ANSIBLE_CORE_VERSION="$(cat "${STAGE}/ansible-core-version" 2>/dev/null || true)"
 if [ -z "${ANSIBLE_CORE_VERSION}" ]; then
     echo "ERROR: ${STAGE}/ansible-core-version is missing or empty" >&2
     exit 1
 fi
 
-python3 -m venv "${STAGE}/venv"
-"${STAGE}/venv/bin/pip" install --no-cache-dir "ansible-core==${ANSIBLE_CORE_VERSION}"
+python3 -m venv "${VENV}"
+"${VENV}/bin/pip" install --no-cache-dir "ansible-core==${ANSIBLE_CORE_VERSION}"
 # Pin collections to exact versions so two builds from the same source produce
 # the same image and a yanked or tampered release cannot silently change what
 # runs as root in the chroot. Both are compatible with ansible-core 2.18.
-"${STAGE}/venv/bin/ansible-galaxy" collection install \
+"${VENV}/bin/ansible-galaxy" collection install \
     'community.general:==12.0.0' \
     'ansible.posix:==2.2.0'

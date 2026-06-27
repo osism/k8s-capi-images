@@ -10,5 +10,5 @@ fi
 set -euo pipefail
 
 rm -f /usr/sbin/policy-rc.d
-rm -rf /tmp/in_target.d/image-builder
+rm -rf /opt/image-builder-venv
 rm -rf /root/.ansible /root/.cache/pip
