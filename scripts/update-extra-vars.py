@@ -9,6 +9,7 @@ import json
 import os
 import re
 import sys
+import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -39,33 +40,20 @@ def traverse_pagination():
     # more information:
     # https://docs.github.com/en/rest/guides/traversing-with-pagination
     query_url = github_api + "?q=addClass+user:mozilla&per_page=100"
-    with urllib.request.urlopen(query_url) as url:
-        result = url.getheader("link")
+    with urllib.request.urlopen(query_url, timeout=30) as url:
+        link = url.getheader("link")
 
-    # turn this answer
-    # <https://api.github.com/repositories/20580498/tags?q=addClass+user%3Amo\
-    # zilla&per_page=100&page=2>; rel="next", <https://api.github.com/reposit\
-    # ories/20580498/tags?q=addClass+user%3Amozilla&per_page=100&page=8>; rel\
-    # ="last"
-    # into a list
-    # [
-    #  '<https://api.github.com/repositories/20580498/tags?q',
-    #  'addClass+user%3Amozilla&per_page',
-    #  '100&page',
-    #  '2>; rel',
-    #  '"next" <https://api.github.com/repositories/20580498/tags?q',
-    #  'addClass+user%3Amozilla&per_page',
-    #  '100&page',
-    #  '8>; rel',
-    #  '"last"'
-    # ]
-    result = result.split("=")
-    # get only the 8th entry: '8>; rel'
-    result = result[7]
-    # strip away the html stuff to get only the number of pages
-    result = result.split(">")[0]
+    # A response without a Link header has only a single page of results
+    # (one result page, or the rel="last" entry is simply absent), so there
+    # is nothing further to traverse.
+    if not link:
+        return 1
 
-    return int(result)
+    # Extract the page number from the rel="last" entry, e.g. the segment
+    #   <https://api.github.com/...&per_page=100&page=8>; rel="last"
+    # yields 8.
+    last = re.search(r'[?&]page=(\d+)>;\s*rel="last"', link)
+    return int(last.group(1)) if last else 1
 
 
 def update_version(data):
@@ -77,7 +65,7 @@ def update_version(data):
     # and break, if we found a matching tag to avoid too much api queries
     for page in range(number_of_pages):
         query_url = github_api + "?per_page=100&page=" + str(page)
-        with urllib.request.urlopen(query_url) as url:
+        with urllib.request.urlopen(query_url, timeout=30) as url:
             # check the 100 tags if they are valid and append
             # them to the list "versions"
             for entry in json.loads(url.read().decode()):
@@ -159,7 +147,14 @@ def update_readme(series, new_version):
 ###############################################################################
 
 original_data = load_file(file)
-updated_data = update_version(original_data)
+try:
+    updated_data = update_version(original_data)
+except (urllib.error.URLError, TimeoutError) as err:
+    # GitHub rate-limits unauthenticated requests (60/hour) with a 403 and the
+    # endpoint can stall or be unreachable. Fail this file loudly instead of
+    # crashing with a traceback so the surrounding loop can move on.
+    print(f"Error: could not fetch Kubernetes versions for {file}: {err}")
+    sys.exit(1)
 
 dump_file(file, updated_data)
 

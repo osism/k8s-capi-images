@@ -15,8 +15,6 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v2
-        with:
-          submodules: true
 
       - name: Setup python 3.9
         uses: actions/setup-python@v2
