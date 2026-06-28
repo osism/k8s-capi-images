@@ -32,9 +32,21 @@
 
     - name: Pre-pull Kubernetes images with a build-time containerd
       block:
+        # In the systemd-less DIB chroot /proc/self/mountinfo is the host's
+        # mount table, so containerd's btrfs snapshotter cannot find the mount
+        # info for its root dir and fails to load. That failure cascades through
+        # the metadata plugin into the CRI plugins, so kubeadm's pre-pull aborts
+        # with "unknown service runtime.v1.RuntimeService". Start the build-time
+        # containerd from a chroot-only config that prepends disabled_plugins to
+        # the shipped config.toml; the shipped /etc/containerd/config.toml is
+        # left untouched so production images keep the upstream snapshotter set.
         - name: Start containerd in the background for the offline image pre-pull
           ansible.builtin.shell: |
-            setsid /usr/local/bin/containerd --config /etc/containerd/config.toml \
+            set -eu
+            { echo 'disabled_plugins = ["io.containerd.snapshotter.v1.btrfs"]'
+              cat /etc/containerd/config.toml
+            } > /run/containerd-build.toml
+            setsid /usr/local/bin/containerd --config /run/containerd-build.toml \
               </dev/null >/var/log/containerd-build.log 2>&1 &
           args:
             executable: /bin/bash
