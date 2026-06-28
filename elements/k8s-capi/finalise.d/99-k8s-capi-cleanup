@@ -1,0 +1,30 @@
+#!/bin/bash
+# Runs in the chroot at the end of DIB's finalise phase, after the bootloader is
+# installed. Removes the build scaffolding so it does not ship in the image.
+#
+# This has to run in finalise.d (in the chroot), not cleanup.d: cleanup.d runs on
+# the build host as the unprivileged build user, where these absolute paths refer
+# to the host rather than the image -- there it fails with "rm: cannot remove
+# '/root/.ansible': Permission denied". Running after 50-bootloader also keeps
+# policy-rc.d in place to block service starts during the bootloader apt install.
+
+if [ "${DIB_DEBUG_TRACE:-0}" -gt 0 ]; then
+    set -x
+fi
+set -euo pipefail
+
+# Scaffolding from the image-builder run: the apt service-start block, the
+# throwaway Ansible venv, and the Ansible/pip caches.
+rm -f /usr/sbin/policy-rc.d
+rm -rf /opt/image-builder-venv
+rm -rf /root/.ansible /root/.cache/pip
+
+# 40-update-apt-for-bootloader refreshed the apt index for the grub install; drop
+# it again so the image ships no package index (DIB's dpkg/99-clean-up-cache only
+# runs "apt-get clean" and leaves /var/lib/apt/lists in place).
+rm -rf /var/lib/apt/lists/*
+
+# image-builder sysprep's temp reset is neutralized for the chroot build (it
+# cannot delete DIB's read-only /tmp/in_target.d mount), so clear the leftover
+# build temp here. in_target.d is still mounted; leave it for DIB to unmount.
+find /tmp /var/tmp -mindepth 1 -maxdepth 1 ! -name in_target.d -exec rm -rf {} +

@@ -15,7 +15,7 @@ export LANG=C.UTF-8
 
 # The staging dir is bind-mounted read-only into the chroot, so the venv cannot
 # live under it; create it on the writable root filesystem and drop it again in
-# cleanup.d so it never ships in the image.
+# finalise.d so it never ships in the image.
 STAGE=/tmp/in_target.d/image-builder
 VENV=/opt/image-builder-venv
 ANSIBLE_CORE_VERSION="$(cat "${STAGE}/ansible-core-version" 2>/dev/null || true)"

@@ -66,21 +66,20 @@ How it works
   the shims and the venv to ``PATH``, and runs ``wrapper.yml`` with the staged
   config JSONs and the override.
 
-``cleanup.d/90-k8s-capi-cleanup`` (in the chroot)
-  Removes ``policy-rc.d`` and the Ansible/pip caches, and clears the build temp
-  left under ``/tmp`` and ``/var/tmp`` (sparing DIB's ``in_target.d`` mount), so
-  no build scaffolding ships in the image. ``wrapper.yml`` neutralizes
-  image-builder sysprep's own temp reset, which cannot delete that read-only
-  mount.
-
 ``finalise.d/40-update-apt-for-bootloader`` (in the chroot)
   Runs ``apt-get update`` before DIB's ``bootloader`` element installs grub.
   image-builder sysprep cleared the apt index, so without this the grub install
   fails with "no installation candidate".
 
-``finalise.d/99-clean-apt-lists`` (in the chroot)
-  Drops the apt index again once grub is installed, restoring sysprep's intent
-  (DIB's own cleanup only runs ``apt-get clean``).
+``finalise.d/99-k8s-capi-cleanup`` (in the chroot)
+  Removes the build scaffolding so it does not ship in the image: ``policy-rc.d``,
+  the Ansible venv and the Ansible/pip caches, the apt index re-fetched for the
+  bootloader, and the build temp under ``/tmp`` and ``/var/tmp`` (sparing DIB's
+  ``in_target.d`` mount). This runs in ``finalise.d`` rather than ``cleanup.d``
+  because ``cleanup.d`` runs on the build host as an unprivileged user, where
+  these absolute paths would point at the host instead of the image.
+  ``wrapper.yml`` neutralizes image-builder sysprep's own temp reset, which
+  cannot delete the read-only ``in_target.d`` mount.
 
 Build shims
 ===========
