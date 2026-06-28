@@ -24,7 +24,7 @@ rm -rf /root/.ansible /root/.cache/pip
 # runs "apt-get clean" and leaves /var/lib/apt/lists in place).
 rm -rf /var/lib/apt/lists/*
 
-# image-builder sysprep's temp reset is neutralized for the chroot build (it
-# cannot delete DIB's read-only /tmp/in_target.d mount), so clear the leftover
-# build temp here. in_target.d is still mounted; leave it for DIB to unmount.
-find /tmp /var/tmp -mindepth 1 -maxdepth 1 ! -name in_target.d -exec rm -rf {} +
+# Note: /tmp is deliberately left alone. During DIB's chroot phases it holds
+# DIB's own machinery (the in_target.d mount, dib-run-parts' active profile dir),
+# so a wipe here breaks the build; the residual build temp is tiny and /tmp is
+# cleared on boot anyway.

@@ -73,13 +73,15 @@ How it works
 
 ``finalise.d/99-k8s-capi-cleanup`` (in the chroot)
   Removes the build scaffolding so it does not ship in the image: ``policy-rc.d``,
-  the Ansible venv and the Ansible/pip caches, the apt index re-fetched for the
-  bootloader, and the build temp under ``/tmp`` and ``/var/tmp`` (sparing DIB's
-  ``in_target.d`` mount). This runs in ``finalise.d`` rather than ``cleanup.d``
-  because ``cleanup.d`` runs on the build host as an unprivileged user, where
-  these absolute paths would point at the host instead of the image.
-  ``wrapper.yml`` neutralizes image-builder sysprep's own temp reset, which
-  cannot delete the read-only ``in_target.d`` mount.
+  the Ansible venv and the Ansible/pip caches, and the apt index re-fetched for
+  the bootloader. This runs in ``finalise.d`` rather than ``cleanup.d`` because
+  ``cleanup.d`` runs on the build host as an unprivileged user, where these
+  absolute paths would point at the host instead of the image. ``/tmp`` is left
+  alone -- during DIB's chroot phases it holds DIB's own machinery (the
+  ``in_target.d`` mount, dib-run-parts' profile dir), so wiping it breaks the
+  build; ``wrapper.yml`` therefore only neutralizes image-builder sysprep's own
+  temp reset (which cannot delete the read-only ``in_target.d`` mount) rather
+  than reproducing it.
 
 Build shims
 ===========
