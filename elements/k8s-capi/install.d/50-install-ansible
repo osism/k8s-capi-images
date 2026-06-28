@@ -7,6 +7,12 @@ if [ "${DIB_DEBUG_TRACE:-0}" -gt 0 ]; then
 fi
 set -euo pipefail
 
+# ansible-core 2.18 aborts at startup unless the locale encoding is UTF-8, and a
+# fresh chroot has no locale set ("Detected None"). C.UTF-8 is built into glibc
+# on Noble, so no locale needs to be generated first.
+export LC_ALL=C.UTF-8
+export LANG=C.UTF-8
+
 # The staging dir is bind-mounted read-only into the chroot, so the venv cannot
 # live under it; create it on the writable root filesystem and drop it again in
 # cleanup.d so it never ships in the image.

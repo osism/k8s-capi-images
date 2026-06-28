@@ -18,6 +18,12 @@ exit 101
 EOF
 chmod 0755 /usr/sbin/policy-rc.d
 
+# ansible-core 2.18 aborts at startup unless the locale encoding is UTF-8, and a
+# fresh chroot has no locale set ("Detected None"). C.UTF-8 is built into glibc
+# on Noble, so no locale needs to be generated first.
+export LC_ALL=C.UTF-8
+export LANG=C.UTF-8
+
 export ANSIBLE_CONFIG="${STAGE}/ansible.cfg"
 export PATH="${STAGE}/shims:${VENV}/bin:${PATH}"
 
