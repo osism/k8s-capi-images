@@ -59,41 +59,44 @@
         LAST_FILE: "{{ last_file }}"
       changed_when: true
 
-    - name: Write the rclone configuration with the object-storage credentials
-      ansible.builtin.copy:
-        dest: "{{ zuul.project.src_dir }}/.rclone.conf"
-        mode: "0600"
-        content: |
-          [s3]
-          type = s3
-          provider = Ceph
-          endpoint = https://nbg1.your-objectstorage.com
-          region = nbg1
-          access_key_id = {{ secret.ACCESS_KEY | trim }}
-          secret_access_key = {{ secret.SECRET_KEY | trim }}
-          acl = public-read
-          no_check_bucket = true
-      when: upload_image | default(false) | bool
-      no_log: true
-
-    - name: Publish the image to the object storage
-      ansible.builtin.shell:
-        executable: /bin/bash
-        chdir: "{{ zuul.project.src_dir }}"
-        cmd: |
-          set -e
-          set -x
-
-          FILE="${IMAGE_BASENAME}.qcow2"
-
-          cd output
-          rclone copyto "${FILE}" "s3:osism/openstack-k8s-capi-images/${IMAGE_DIR}/${FILE}"
-          rclone copyto "${FILE}.CHECKSUM" "s3:osism/openstack-k8s-capi-images/${IMAGE_DIR}/${FILE}.CHECKSUM"
-          rclone copyto "${LAST_FILE}" "s3:osism/openstack-k8s-capi-images/${LAST_FILE}"
-      environment:
-        RCLONE_CONFIG: "{{ zuul.project.src_dir }}/.rclone.conf"
-        IMAGE_DIR: "{{ image_dir }}"
-        IMAGE_BASENAME: "{{ image_basename }}"
-        LAST_FILE: "{{ last_file }}"
-      when: upload_image | default(false) | bool
-      changed_when: true
+# The image upload is intentionally disabled for now and will be armed later,
+# together with the publish jobs and secret in .zuul.yaml. The two upload
+# tasks below stay commented out until then.
+#     - name: Write the rclone configuration with the object-storage credentials
+#       ansible.builtin.copy:
+#         dest: "{{ zuul.project.src_dir }}/.rclone.conf"
+#         mode: "0600"
+#         content: |
+#           [s3]
+#           type = s3
+#           provider = Ceph
+#           endpoint = https://nbg1.your-objectstorage.com
+#           region = nbg1
+#           access_key_id = {{ secret.ACCESS_KEY | trim }}
+#           secret_access_key = {{ secret.SECRET_KEY | trim }}
+#           acl = public-read
+#           no_check_bucket = true
+#       when: upload_image | default(false) | bool
+#       no_log: true
+#
+#     - name: Publish the image to the object storage
+#       ansible.builtin.shell:
+#         executable: /bin/bash
+#         chdir: "{{ zuul.project.src_dir }}"
+#         cmd: |
+#           set -e
+#           set -x
+#
+#           FILE="${IMAGE_BASENAME}.qcow2"
+#
+#           cd output
+#           rclone copyto "${FILE}" "s3:osism/openstack-k8s-capi-images/${IMAGE_DIR}/${FILE}"
+#           rclone copyto "${FILE}.CHECKSUM" "s3:osism/openstack-k8s-capi-images/${IMAGE_DIR}/${FILE}.CHECKSUM"
+#           rclone copyto "${LAST_FILE}" "s3:osism/openstack-k8s-capi-images/${LAST_FILE}"
+#       environment:
+#         RCLONE_CONFIG: "{{ zuul.project.src_dir }}/.rclone.conf"
+#         IMAGE_DIR: "{{ image_dir }}"
+#         IMAGE_BASENAME: "{{ image_basename }}"
+#         LAST_FILE: "{{ last_file }}"
+#       when: upload_image | default(false) | bool
+#       changed_when: true
