@@ -40,7 +40,7 @@ cd "${STAGE}"
 # chroot includes DIB's read-only /tmp/in_target.d bind mount (the very tree we
 # run from); deleting it fails with EROFS. Extra vars outrank the value the task
 # registers from its find, so the reset loop runs over an empty list. The build
-# temp is cleaned by this element's cleanup.d instead, leaving in_target.d for
+# temp is cleaned by this element's finalise.d instead, leaving in_target.d for
 # DIB to unmount.
 ansible-playbook -i 'localhost,' -c local ansible/wrapper.yml \
     -e @config/common.json \
