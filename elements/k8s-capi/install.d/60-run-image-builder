@@ -39,9 +39,10 @@ cd "${STAGE}"
 # deletes nothing. That task wipes everything at depth 1 under /tmp, which in the
 # chroot includes DIB's read-only /tmp/in_target.d bind mount (the very tree we
 # run from); deleting it fails with EROFS. Extra vars outrank the value the task
-# registers from its find, so the reset loop runs over an empty list. The build
-# temp is cleaned by this element's finalise.d instead, leaving in_target.d for
-# DIB to unmount.
+# registers from its find, so the reset loop runs over an empty list. The wipe is
+# not reproduced elsewhere: during DIB's chroot phases /tmp holds DIB's own
+# machinery (the in_target.d mount, dib-run-parts' profile dir), the leftover
+# build temp is tiny, and /tmp is cleared on boot.
 ansible-playbook -i 'localhost,' -c local ansible/wrapper.yml \
     -e @config/common.json \
     -e @config/containerd.json \
