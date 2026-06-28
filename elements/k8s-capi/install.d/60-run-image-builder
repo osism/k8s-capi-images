@@ -34,6 +34,14 @@ cd "${STAGE}"
 # Packer user-vars the roles need that are not in the config files. python_path
 # is intentionally not passed: wrapper.yml omits PYTHONPATH via default(omit),
 # because an empty value would add the staging dir to root's sys.path.
+#
+# temp_files is forced empty so image-builder's sysprep "Reset temp space" task
+# deletes nothing. That task wipes everything at depth 1 under /tmp, which in the
+# chroot includes DIB's read-only /tmp/in_target.d bind mount (the very tree we
+# run from); deleting it fails with EROFS. Extra vars outrank the value the task
+# registers from its find, so the reset loop runs over an empty list. The build
+# temp is cleaned by this element's cleanup.d instead, leaving in_target.d for
+# DIB to unmount.
 ansible-playbook -i 'localhost,' -c local ansible/wrapper.yml \
     -e @config/common.json \
     -e @config/containerd.json \
@@ -43,6 +51,7 @@ ansible-playbook -i 'localhost,' -c local ansible/wrapper.yml \
     -e @config/additional_components.json \
     -e @config/ecr_credential_provider.json \
     -e @override.json \
+    -e '{"temp_files": {"files": []}}' \
     -e packer_builder_type=openstack \
     -e packer_build_name=openstack \
     -e 'containerd_service_url=https://raw.githubusercontent.com/containerd/containerd/refs/tags/v{{ containerd_version }}/containerd.service'
