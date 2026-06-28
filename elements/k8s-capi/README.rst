@@ -62,9 +62,10 @@ How it works
   ``ansible.posix`` collections the roles import.
 
 ``install.d/60-run-image-builder`` (in the chroot)
-  Writes ``/usr/sbin/policy-rc.d`` (so apt does not start services), prepends
-  the shims and the venv to ``PATH``, and runs ``wrapper.yml`` with the staged
-  config JSONs and the override.
+  Writes ``/usr/sbin/policy-rc.d`` (so apt does not start services; DIB removes
+  it again in its own cleanup phase), prepends the shims and the venv to
+  ``PATH``, and runs ``wrapper.yml`` with the staged config JSONs and the
+  override.
 
 ``finalise.d/40-update-apt-for-bootloader`` (in the chroot)
   Runs ``apt-get update`` before DIB's ``bootloader`` element installs grub.
@@ -72,9 +73,11 @@ How it works
   fails with "no installation candidate".
 
 ``finalise.d/99-k8s-capi-cleanup`` (in the chroot)
-  Removes the build scaffolding so it does not ship in the image: ``policy-rc.d``,
-  the Ansible venv and the Ansible/pip caches, and the apt index re-fetched for
-  the bootloader. This runs in ``finalise.d`` rather than ``cleanup.d`` because
+  Removes the build scaffolding so it does not ship in the image: the Ansible
+  venv and the Ansible/pip caches, and the apt index re-fetched for the
+  bootloader. ``policy-rc.d`` is left for DIB to remove (its
+  ``cleanup.d/40-unblock-daemons`` deletes it with a bare ``rm`` that errors if
+  it is already gone). This runs in ``finalise.d`` rather than ``cleanup.d`` because
   ``cleanup.d`` runs on the build host as an unprivileged user, where these
   absolute paths would point at the host instead of the image. ``/tmp`` is left
   alone -- during DIB's chroot phases it holds DIB's own machinery (the
