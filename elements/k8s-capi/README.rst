@@ -40,7 +40,7 @@ The element is normally driven through ``build-local.sh`` at the repository
 root, which sets the inputs and invokes::
 
     disk-image-create -a amd64 -t qcow2 \
-        -o output/ubuntu-2404-kube-v1.33.12 \
+        -o output/ubuntu-2404-kube-v1.33.13 \
         ubuntu vm growroot openssh-server k8s-capi
 
 How it works
