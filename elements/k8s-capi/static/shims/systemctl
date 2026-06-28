@@ -6,8 +6,19 @@
 # the right on-disk state:
 #   * enable/disable are performed offline (SYSTEMD_OFFLINE=1) so units such as
 #     containerd and kubelet end up enabled in the image;
+#   * show always fails: Ansible's systemd module probes `show` first and only
+#     consults its offline is-enabled/list-unit-files fallback when show fails.
+#     In this chroot real `systemctl show` still exits 0 but reports the unit as
+#     not-found (no manager to load it), which makes the module conclude every
+#     systemd-only unit is missing ("Could not find the requested service ...").
+#     Forcing show to fail routes the module onto the fallback, which works
+#     offline; no build-time task reads `systemctl show` directly;
+#   * is-enabled runs offline and keeps its real exit code -- that rc is how the
+#     fallback tells enabled from disabled (masking it to 0 makes every disabled
+#     unit look enabled, so the module never enables it);
 #   * lifecycle verbs (start/stop/restart/daemon-reload/...) are no-ops;
-#   * status queries answer benignly so service_facts/package_facts keep working.
+#   * remaining status queries answer benignly so service_facts/package_facts and
+#     the module's list-unit-files existence fallback keep working.
 set -u
 
 REAL=/bin/systemctl
@@ -30,11 +41,26 @@ case "$cmd" in
         # Propagate the real exit code instead of swallowing it.
         exec env SYSTEMD_OFFLINE=1 "$REAL" "$@"
         ;;
+    show)
+        # Force the systemd module onto its offline existence fallback. Real
+        # `systemctl show` exits 0 here even though it cannot load the unit, so the
+        # module would otherwise see LoadState=not-found and declare the unit
+        # missing. Failing show makes it fall back to is-enabled/list-unit-files,
+        # which answer correctly offline. Safe: nothing reads show at build time.
+        exit 1
+        ;;
+    is-enabled)
+        # Real offline state with its real exit code: this is how the module's
+        # fallback distinguishes an existing unit from a missing one and enabled
+        # from disabled. Masking the rc to 0 makes every disabled unit look already
+        # enabled, so containerd/kubelet would ship disabled. Swallow only stderr.
+        exec env SYSTEMD_OFFLINE=1 "$REAL" "$@" 2>/dev/null
+        ;;
     is-active|is-failed)
         echo "inactive"
         exit 0
         ;;
-    is-enabled|status|show|cat|list-units|list-unit-files|list-timers|get-default)
+    status|cat|list-units|list-unit-files|list-timers|get-default)
         SYSTEMD_OFFLINE=1 "$REAL" "$@" 2>/dev/null || true
         exit 0
         ;;
