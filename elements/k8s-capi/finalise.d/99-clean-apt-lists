@@ -1,0 +1,15 @@
+#!/bin/bash
+# Runs in the chroot at the end of DIB's finalise phase, after the bootloader
+# has been installed.
+#
+# 40-update-apt-for-bootloader refreshed the apt package index so grub could be
+# installed; drop it again here so the image does not ship a package index,
+# matching image-builder sysprep's intent. DIB's own dpkg/99-clean-up-cache only
+# runs "apt-get clean" (the .deb cache) and leaves /var/lib/apt/lists in place.
+
+if [ "${DIB_DEBUG_TRACE:-0}" -gt 0 ]; then
+    set -x
+fi
+set -euo pipefail
+
+rm -rf /var/lib/apt/lists/*
