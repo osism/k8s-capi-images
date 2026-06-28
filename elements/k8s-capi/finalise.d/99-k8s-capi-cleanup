@@ -5,17 +5,19 @@
 # This has to run in finalise.d (in the chroot), not cleanup.d: cleanup.d runs on
 # the build host as the unprivileged build user, where these absolute paths refer
 # to the host rather than the image -- there it fails with "rm: cannot remove
-# '/root/.ansible': Permission denied". Running after 50-bootloader also keeps
-# policy-rc.d in place to block service starts during the bootloader apt install.
+# '/root/.ansible': Permission denied". It runs after 50-bootloader so the build
+# scaffolding is still in place while grub is installed.
 
 if [ "${DIB_DEBUG_TRACE:-0}" -gt 0 ]; then
     set -x
 fi
 set -euo pipefail
 
-# Scaffolding from the image-builder run: the apt service-start block, the
-# throwaway Ansible venv, and the Ansible/pip caches.
-rm -f /usr/sbin/policy-rc.d
+# Scaffolding from the image-builder run: the throwaway Ansible venv and the
+# Ansible/pip caches. policy-rc.d is intentionally NOT removed here -- DIB owns
+# it (it is created during the build and deleted by DIB's own
+# cleanup.d/40-unblock-daemons, a plain "rm" without -f that fails under set -e
+# if the file is already gone), so removing it here breaks DIB's cleanup.
 rm -rf /opt/image-builder-venv
 rm -rf /root/.ansible /root/.cache/pip
 
