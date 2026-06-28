@@ -48,19 +48,35 @@
           ansible.builtin.include_role:
             name: kubernetes
       rescue:
-        - name: Dump the build-time containerd log after a pre-pull failure
-          # The kubeadm pre-pull talks to the build-time containerd over its
-          # socket; when it fails (for example because the CRI plugin did not
-          # load) the cause is in containerd's own log, which is otherwise lost
-          # when the chroot is torn down. Surface it before re-failing.
+        # The kubeadm pre-pull talks to the build-time containerd over its
+        # socket; when it fails (for example because the CRI plugin did not
+        # load) the cause is in containerd's own log and plugin list, which are
+        # otherwise lost when the chroot is torn down. containerd is still
+        # running here (the reap runs later in always), so query it before
+        # re-failing. Use debug to print the captured output: a bare command
+        # task's stdout is not surfaced in the build log.
+        - name: Read the build-time containerd log
           ansible.builtin.command: cat /var/log/containerd-build.log
+          register: containerd_build_log
           changed_when: false
           failed_when: false
-        - name: Fail the build after surfacing the containerd log
+        - name: Show the build-time containerd log
+          ansible.builtin.debug:
+            var: containerd_build_log.stdout_lines
+        - name: List the build-time containerd plugins and their load status
+          ansible.builtin.command:
+            cmd: ctr --address /var/run/containerd/containerd.sock plugins ls
+          register: containerd_plugins
+          changed_when: false
+          failed_when: false
+        - name: Show the build-time containerd plugins
+          ansible.builtin.debug:
+            var: containerd_plugins.stdout_lines
+        - name: Fail the build after surfacing containerd diagnostics
           ansible.builtin.fail:
             msg: >-
               Kubernetes image pre-pull failed; see the build-time containerd
-              log dumped above.
+              log and plugin list dumped above.
       always:
         - name: Reap the build-time containerd before teardown
           ansible.builtin.shell: |
