@@ -67,8 +67,20 @@ How it works
   config JSONs and the override.
 
 ``cleanup.d/90-k8s-capi-cleanup`` (in the chroot)
-  Removes ``policy-rc.d`` and the Ansible/pip caches so no build scaffolding
-  ships in the image.
+  Removes ``policy-rc.d`` and the Ansible/pip caches, and clears the build temp
+  left under ``/tmp`` and ``/var/tmp`` (sparing DIB's ``in_target.d`` mount), so
+  no build scaffolding ships in the image. ``wrapper.yml`` neutralizes
+  image-builder sysprep's own temp reset, which cannot delete that read-only
+  mount.
+
+``finalise.d/40-update-apt-for-bootloader`` (in the chroot)
+  Runs ``apt-get update`` before DIB's ``bootloader`` element installs grub.
+  image-builder sysprep cleared the apt index, so without this the grub install
+  fails with "no installation candidate".
+
+``finalise.d/99-clean-apt-lists`` (in the chroot)
+  Drops the apt index again once grub is installed, restoring sysprep's intent
+  (DIB's own cleanup only runs ``apt-get clean``).
 
 Build shims
 ===========

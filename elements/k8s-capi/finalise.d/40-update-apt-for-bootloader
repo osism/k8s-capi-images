@@ -1,0 +1,15 @@
+#!/bin/bash
+# Runs in the chroot during DIB's finalise phase, before 50-bootloader.
+#
+# image-builder's sysprep role clears /var/lib/apt/lists at the end of the
+# in-chroot run, but DIB's bootloader element then installs grub via apt during
+# finalise.d, which fails with "Package 'grub-pc' has no installation candidate"
+# because the package index is gone. Refresh the index so the bootloader can be
+# installed; 99-clean-apt-lists drops it again once grub is in place.
+
+if [ "${DIB_DEBUG_TRACE:-0}" -gt 0 ]; then
+    set -x
+fi
+set -euo pipefail
+
+apt-get update
