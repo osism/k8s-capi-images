@@ -1,0 +1,301 @@
+---
+# Validate a freshly built CAPI image with upstream image-builder's goss spec.
+#
+# Service-running and live sysctl checks need a booted system, so the image is
+# booted under QEMU and `goss validate` runs inside the VM. To keep the
+# published artifact bit-identical, the VM boots a disposable copy-on-write
+# overlay whose backing file is the built qcow2 (Variant B); all guest writes
+# land in the overlay, which is deleted afterwards.
+#
+# The goss spec is not vendored: it is re-cloned from kubernetes-sigs/image-
+# builder at the same SHA-pinned ref the element uses (read from
+# environment.d/10-k8s-capi.bash), honoring the existing supply-chain model and
+# avoiding drift. The goss binary is pinned by version and verified by checksum.
+- name: Validate the built CAPI image with goss
+  hosts: all
+
+  vars:
+    goss_version: "0.3.23"
+    # sha256 of goss-linux-amd64 v0.3.23 (goss-org/goss release asset).
+    goss_sha256: "9e9f24e25f86d6adf2e669a9ffbe8c3d7b9b439f5f877500dea02ba837e10e4d"
+    ssh_port: 2222
+    ssh_opts: >-
+      -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
+      -o BatchMode=yes -o ConnectTimeout=15
+    project_dir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}"
+
+  tasks:
+    # kubernetes_version and variant are job vars an untrusted Zuul change can
+    # redefine via speculative .zuul.yaml, and both flow into override_file (a
+    # path read by the lookup and handed to render-goss-vars.py). Guard them
+    # before they derive any path, mirroring the image_basename assert below.
+    - name: Validate the build inputs that flow into the override file path
+      ansible.builtin.assert:
+        that:
+          - kubernetes_version | default('v1.33') is match('^[A-Za-z0-9._-]*$')
+          - variant | default('') is match('^[A-Za-z0-9._-]*$')
+        fail_msg: >-
+          Refusing to validate: kubernetes_version and variant must contain only
+          [A-Za-z0-9._-] (kubernetes_version={{ kubernetes_version | default('v1.33') }},
+          variant={{ variant | default('') }}).
+
+    - name: Resolve the image variant suffix for this build
+      ansible.builtin.set_fact:
+        suffix: "{{ ('-' + variant) if variant | default('') else '' }}"
+
+    - name: Resolve the override file for this build
+      ansible.builtin.set_fact:
+        override_file: "overrides/{{ kubernetes_version | default('v1.33') }}{{ suffix }}.json"
+
+    - name: Derive the image basename from the override file
+      ansible.builtin.set_fact:
+        image_basename: "ubuntu-2404-kube-{{ override_data.kubernetes_semver }}{{ suffix }}"
+      vars:
+        override_data: "{{ lookup('file', playbook_dir ~ '/../' ~ override_file) | from_json }}"
+
+    - name: Validate the derived image basename
+      ansible.builtin.assert:
+        that:
+          - image_basename is match('^[A-Za-z0-9._-]+$')
+        fail_msg: >-
+          Refusing to validate: image_basename derived from the override file
+          contains characters outside [A-Za-z0-9._-] (image_basename={{ image_basename }}).
+
+    - name: Set the image and run-directory paths
+      ansible.builtin.set_fact:
+        image_path: "{{ project_dir }}/output/{{ image_basename }}.qcow2"
+        run_dir: "{{ ansible_user_dir }}/goss-validate-{{ image_basename }}"
+
+    - name: Read the pinned image-builder ref from the element environment
+      ansible.builtin.slurp:
+        src: "{{ project_dir }}/elements/k8s-capi/environment.d/10-k8s-capi.bash"
+      register: ref_env
+
+    - name: Resolve the pinned image-builder ref
+      ansible.builtin.set_fact:
+        image_builder_ref: "{{ ref_env.content | b64decode | regex_search('DIB_K8S_IMAGE_BUILDER_REF:-([0-9a-fA-F]{40})', '\\1') | first }}"
+
+    - name: Fail loudly if the pinned ref could not be resolved
+      ansible.builtin.assert:
+        that:
+          - image_builder_ref is match('^[0-9a-fA-F]{40}$')
+        fail_msg: >-
+          Could not resolve a 40-char image-builder commit SHA from
+          environment.d/10-k8s-capi.bash; refusing to fall back to an unpinned
+          ref (image_builder_ref={{ image_builder_ref | default('') }}).
+
+    - name: Create the validation run directory
+      ansible.builtin.file:
+        path: "{{ run_dir }}"
+        state: directory
+        mode: "0755"
+
+    # Same SHA-pinned, blobless, --no-checkout clone the element uses: a moved
+    # upstream ref must never be trusted. The goss spec is copied out; the
+    # config tree stays in the clone for the renderer below.
+    - name: Clone image-builder at the pinned ref and stage the goss spec
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -euo pipefail
+          rm -rf "{{ run_dir }}/image-builder" "{{ run_dir }}/goss"
+          git clone --filter=blob:none --no-checkout \
+              https://github.com/kubernetes-sigs/image-builder "{{ run_dir }}/image-builder"
+          git -C "{{ run_dir }}/image-builder" -c advice.detachedHead=false \
+              checkout "{{ image_builder_ref }}"
+          cp -a "{{ run_dir }}/image-builder/images/capi/packer/goss" "{{ run_dir }}/goss"
+      changed_when: true
+
+    - name: Render the goss --vars-inline mapping from the override
+      ansible.builtin.command:
+        cmd: >-
+          python3 {{ project_dir }}/scripts/render-goss-vars.py
+          {{ run_dir }}/image-builder/images/capi/packer/config
+          {{ project_dir }}/{{ override_file }}
+      register: goss_vars
+      changed_when: false
+
+    - name: Write the rendered vars-inline file
+      ansible.builtin.copy:
+        dest: "{{ run_dir }}/vars-inline.json"
+        content: "{{ goss_vars.stdout }}\n"
+        mode: "0644"
+
+    - name: Download and verify the pinned goss binary
+      ansible.builtin.get_url:
+        url: "https://github.com/goss-org/goss/releases/download/v{{ goss_version }}/goss-linux-amd64"
+        dest: "{{ run_dir }}/goss-bin"
+        checksum: "sha256:{{ goss_sha256 }}"
+        mode: "0755"
+
+    - name: Boot the image and run goss validation
+      block:
+        - name: Create the disposable copy-on-write overlay
+          ansible.builtin.command:
+            cmd: >-
+              qemu-img create -f qcow2
+              -b {{ image_path }} -F qcow2
+              {{ run_dir }}/validate-overlay.qcow2
+          changed_when: true
+
+        - name: Generate an ephemeral SSH key for the validation VM
+          ansible.builtin.command:
+            cmd: ssh-keygen -t ed25519 -N '' -f {{ run_dir }}/id_ed25519 -C goss-validate
+            creates: "{{ run_dir }}/id_ed25519"
+
+        - name: Read the ephemeral public key
+          ansible.builtin.slurp:
+            src: "{{ run_dir }}/id_ed25519.pub"
+          register: ssh_pub
+
+        - name: Write the cloud-init NoCloud user-data
+          ansible.builtin.copy:
+            dest: "{{ run_dir }}/user-data"
+            mode: "0644"
+            content: |
+              #cloud-config
+              hostname: goss-validate
+              ssh_pwauth: false
+              ssh_authorized_keys:
+                - {{ ssh_pub.content | b64decode | trim }}
+
+        - name: Write the cloud-init NoCloud meta-data
+          ansible.builtin.copy:
+            dest: "{{ run_dir }}/meta-data"
+            mode: "0644"
+            content: |
+              instance-id: goss-validate
+              local-hostname: goss-validate
+
+        - name: Build the cloud-init NoCloud seed ISO
+          ansible.builtin.command:
+            cmd: cloud-localds {{ run_dir }}/seed.iso {{ run_dir }}/user-data {{ run_dir }}/meta-data
+            creates: "{{ run_dir }}/seed.iso"
+
+        # BIOS/MBR image (vm growroot) boots on QEMU's default SeaBIOS, so no
+        # OVMF firmware is needed. Daemonize and record the pid so the always:
+        # teardown can stop it even when validation fails. restrict=on isolates
+        # the not-yet-trusted image: SLIRP still serves DHCP and the host->guest
+        # SSH forward, but the guest gets no egress to the CI node or its cloud
+        # metadata endpoint. The seed is on the NoCloud drive and goss checks the
+        # local system, so no validation step needs outbound reachability.
+        - name: Boot the overlay under QEMU
+          ansible.builtin.command:
+            cmd: >-
+              qemu-system-x86_64
+              -enable-kvm -smp 2 -m 2048
+              -drive file={{ run_dir }}/validate-overlay.qcow2,if=virtio,format=qcow2
+              -drive file={{ run_dir }}/seed.iso,if=virtio,format=raw,readonly=on
+              -netdev user,id=net0,restrict=on,hostfwd=tcp:127.0.0.1:{{ ssh_port }}-:22
+              -device virtio-net-pci,netdev=net0
+              -display none -monitor none
+              -serial file:{{ run_dir }}/console.log
+              -pidfile {{ run_dir }}/qemu.pid
+              -daemonize
+          changed_when: true
+
+        # cloud-init status --wait blocks until the first boot finishes; retry
+        # because SSH is refused until sshd comes up during boot.
+        - name: Wait for cloud-init to finish in the VM
+          ansible.builtin.command:
+            cmd: >-
+              ssh {{ ssh_opts }} -i {{ run_dir }}/id_ed25519 -p {{ ssh_port }}
+              ubuntu@127.0.0.1 sudo cloud-init status --wait
+          register: cloudinit
+          until: cloudinit.rc == 0
+          retries: 60
+          delay: 15
+          changed_when: false
+
+        - name: Write the in-VM goss runner
+          ansible.builtin.copy:
+            dest: "{{ run_dir }}/run-goss.sh"
+            mode: "0755"
+            content: |
+              #!/bin/bash
+              set -euo pipefail
+              sudo install -m 0755 goss-bin /usr/local/bin/goss
+              sudo goss -g goss/goss.yaml --vars goss/goss-vars.yaml \
+                  --vars-inline "$(cat vars-inline.json)" \
+                  validate --retry-timeout 180s --sleep 2s -f json -o pretty
+
+        - name: Copy goss, the spec, and the rendered vars into the VM
+          ansible.builtin.command:
+            cmd: >-
+              scp {{ ssh_opts }} -i {{ run_dir }}/id_ed25519 -P {{ ssh_port }} -r
+              {{ run_dir }}/goss {{ run_dir }}/goss-bin {{ run_dir }}/vars-inline.json
+              {{ run_dir }}/run-goss.sh ubuntu@127.0.0.1:
+          changed_when: true
+
+        - name: Run goss validation inside the VM
+          ansible.builtin.command:
+            cmd: >-
+              ssh {{ ssh_opts }} -i {{ run_dir }}/id_ed25519 -p {{ ssh_port }}
+              ubuntu@127.0.0.1 bash run-goss.sh
+          register: goss_result
+          failed_when: false
+          changed_when: false
+
+        - name: Capture the goss JSON report
+          ansible.builtin.copy:
+            dest: "{{ ansible_user_dir }}/zuul-output/logs/goss-{{ image_basename }}.json"
+            content: "{{ goss_result.stdout }}\n"
+            mode: "0644"
+
+        - name: Record the goss validation outcome
+          ansible.builtin.set_fact:
+            goss_validation_ok: "{{ goss_result.rc == 0 }}"
+
+      rescue:
+        - name: Record that booting or validation failed
+          ansible.builtin.set_fact:
+            goss_validation_ok: false
+
+      always:
+        - name: Terminate the QEMU process (best effort)
+          ansible.builtin.shell:
+            executable: /bin/bash
+            cmd: |
+              pidfile="{{ run_dir }}/qemu.pid"
+              [ -f "${pidfile}" ] || exit 0
+              pid="$(cat "${pidfile}")"
+              kill "${pid}" 2>/dev/null || exit 0
+              for _ in $(seq 1 30); do
+                  kill -0 "${pid}" 2>/dev/null || exit 0
+                  sleep 1
+              done
+              kill -9 "${pid}" 2>/dev/null || true
+          failed_when: false
+          changed_when: true
+
+        - name: Preserve the VM console log
+          ansible.builtin.copy:
+            src: "{{ run_dir }}/console.log"
+            dest: "{{ ansible_user_dir }}/zuul-output/logs/console-{{ image_basename }}.log"
+            remote_src: true
+            mode: "0644"
+          failed_when: false
+
+        - name: Remove the overlay, seed, key, and clone
+          ansible.builtin.file:
+            path: "{{ run_dir }}"
+            state: absent
+          failed_when: false
+
+        # Proves the overlay protected the artifact: the published qcow2 must
+        # still match the checksum build.yml wrote. A mismatch fails the build.
+        - name: Verify the published qcow2 was not modified
+          ansible.builtin.command:
+            cmd: sha256sum -c {{ image_basename }}.qcow2.CHECKSUM
+            chdir: "{{ project_dir }}/output"
+          changed_when: false
+
+    - name: Fail the build if goss validation did not pass
+      ansible.builtin.assert:
+        that:
+          - goss_validation_ok | default(false) | bool
+        fail_msg: >-
+          goss validation failed for {{ image_basename }}; see
+          zuul-output/logs/goss-{{ image_basename }}.json and
+          console-{{ image_basename }}.log.
+        success_msg: "goss validation passed for {{ image_basename }}."
