@@ -13,11 +13,17 @@
       become: true
       ansible.builtin.apt:
         name:
+          # cloud-image-utils provides cloud-localds, used by
+          # playbooks/validate.yml to build the cloud-init NoCloud seed ISO.
+          - cloud-image-utils
           - debootstrap
           - dosfstools
           - gdisk
           - kpartx
           - parted
+          # qemu-system-x86 boots the built image for goss validation;
+          # qemu-utils (below) already provides qemu-img for the overlay.
+          - qemu-system-x86
           - qemu-utils
           - rclone
           - squashfs-tools
