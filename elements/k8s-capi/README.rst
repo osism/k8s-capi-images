@@ -16,6 +16,11 @@ init system. The element supplies build-time shims and a ``policy-rc.d`` so the
 daemon-touching tasks succeed while still writing their configuration files, and
 starts ``containerd`` manually for the Kubernetes image pre-pull.
 
+This element deliberately drops image-builder's Packer-only goss plumbing.
+Validation of the built image with the upstream goss spec is done separately,
+after the build, by ``playbooks/validate.yml`` -- see the "Validating images"
+section of the repository ``README.md``.
+
 Inputs
 ======
 

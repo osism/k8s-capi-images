@@ -40,6 +40,36 @@ variants are published under the parallel `…-gardener` names. The published
 layout and naming are unchanged, so the URLs below and
 `scripts/generate-k8s-image-urls.sh` keep resolving.
 
+## Validating images
+
+After building, CI asserts that each image actually contains the expected
+Kubernetes binaries, containerd, CNI, packages, services, kernel parameters,
+and files by running the upstream [Image Builder](https://github.com/kubernetes-sigs/image-builder/)
+[goss](https://github.com/goss-org/goss) spec — the same spec upstream uses —
+inside the booted image. This is `playbooks/validate.yml`, run after
+`playbooks/build.yml` on every `check` job.
+
+Service-running and live sysctl checks need a booted system, so the image is
+booted under QEMU and `goss validate` runs inside the VM. To keep the published
+qcow2 bit-identical, the VM boots a disposable copy-on-write overlay whose
+backing file is the built image; all guest writes land in the overlay, which is
+deleted afterwards. The build's `.CHECKSUM` is re-verified at the end to prove
+the artifact was untouched.
+
+```bash
+# How the overlay is created (the published image is the read-only backing file)
+qemu-img create -f qcow2 -b output/<image>.qcow2 -F qcow2 validate-overlay.qcow2
+```
+
+The image boots under QEMU with KVM acceleration. The goss spec is re-cloned from
+image-builder at the same `DIB_K8S_IMAGE_BUILDER_REF` the build uses (it is not
+vendored), and the `goss` binary is pinned to `0.3.23` and verified by checksum,
+matching how the build already pins and hashes its inputs.
+
+A failed assertion fails the build, so an image that diverges from what upstream
+Image Builder produces is never published. The goss JSON report and the VM
+console log are saved under `zuul-output/logs/`.
+
 ## Kubernetes Versions
 
 | Series | Current Version | Image URL                                                                                                                                                | End of Life |
