@@ -4,7 +4,14 @@
 # secret, the publish jobs, the project "post" pipeline (all below), and the two
 # upload tasks in playbooks/build.yml. To arm it: regenerate the secret with real
 # credentials (see the note below), then uncomment the secret block, the publish
-# jobs and the project "post" section here, plus the upload tasks in build.yml.
+# jobs and the project "post" section here.
+#
+# IMPORTANT: the upload tasks currently live at the tail of playbooks/build.yml,
+# which runs BEFORE playbooks/validate.yml in the "run" list below. To let goss
+# validation gate publishing (never upload an invalid image), relocate the upload
+# tasks out of build.yml into a new playbooks/publish.yml appended AFTER
+# playbooks/validate.yml in the abstract job's "run" list when arming. A failed
+# validation then fails the job before any upload runs.
 # The ACCESS_KEY/SECRET_KEY values below are placeholders that base64-decode to
 # "REPLACE_WITH_ZUUL_ENCRYPTED_..." and only exist to keep this Zuul config
 # valid. A maintainer holding the object-storage credentials MUST regenerate
@@ -27,7 +34,9 @@
     parent: base
     nodeset: ubuntu-noble-large
     pre-run: playbooks/pre.yml
-    run: playbooks/build.yml
+    run:
+      - playbooks/build.yml
+      - playbooks/validate.yml
     timeout: 7200
     vars:
       upload_image: false
