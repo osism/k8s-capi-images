@@ -61,7 +61,9 @@ the artifact was untouched.
 qemu-img create -f qcow2 -b output/<image>.qcow2 -F qcow2 validate-overlay.qcow2
 ```
 
-The image boots under QEMU with KVM acceleration. The goss spec is re-cloned from
+The image boots under QEMU with KVM acceleration where the node exposes
+`/dev/kvm` (the build host widens its permissions in `playbooks/pre.yml`),
+falling back to TCG software emulation otherwise. The goss spec is re-cloned from
 image-builder at the same `DIB_K8S_IMAGE_BUILDER_REF` the build uses (it is not
 vendored), and the `goss` binary is pinned to `0.3.23` and verified by checksum,
 matching how the build already pins and hashes its inputs.

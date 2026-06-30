@@ -172,6 +172,28 @@
             cmd: cloud-localds {{ run_dir }}/seed.iso {{ run_dir }}/user-data {{ run_dir }}/meta-data
             creates: "{{ run_dir }}/seed.iso"
 
+        # pre.yml widened /dev/kvm to 0666 when the node exposes nested virt, so
+        # this normally selects fast KVM acceleration. A node without /dev/kvm
+        # falls back to TCG software emulation: much slower, but it still boots
+        # and validates rather than hard-failing the build.
+        - name: Probe whether the build host can use KVM acceleration
+          ansible.builtin.command:
+            cmd: test -r /dev/kvm -a -w /dev/kvm
+          register: kvm_probe
+          changed_when: false
+          failed_when: false
+
+        - name: Select the QEMU acceleration flags
+          ansible.builtin.set_fact:
+            qemu_accel: "{{ '-enable-kvm -cpu host' if kvm_probe.rc == 0 else '-accel tcg -cpu max' }}"
+
+        - name: Warn when falling back to software emulation
+          ansible.builtin.debug:
+            msg: >-
+              /dev/kvm is not accessible; booting the validation VM under TCG
+              software emulation, which is significantly slower than KVM.
+          when: kvm_probe.rc != 0
+
         # BIOS/MBR image (vm growroot) boots on QEMU's default SeaBIOS, so no
         # OVMF firmware is needed. Daemonize and record the pid so the always:
         # teardown can stop it even when validation fails. restrict=on isolates
@@ -183,7 +205,7 @@
           ansible.builtin.command:
             cmd: >-
               qemu-system-x86_64
-              -enable-kvm -smp 2 -m 2048
+              {{ qemu_accel }} -smp 2 -m 2048
               -drive file={{ run_dir }}/validate-overlay.qcow2,if=virtio,format=qcow2
               -drive file={{ run_dir }}/seed.iso,if=virtio,format=raw,readonly=on
               -netdev user,id=net0,restrict=on,hostfwd=tcp:127.0.0.1:{{ ssh_port }}-:22

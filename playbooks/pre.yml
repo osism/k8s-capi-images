@@ -30,6 +30,25 @@
           - zip
         update_cache: true
 
+    # qemu-system boots the built image for goss validation and needs KVM for
+    # an acceptable boot time. On these nodes /dev/kvm is root:kvm 0660 and the
+    # build user is not in the kvm group; adding it to the group would not apply
+    # to the already-open Ansible session, so widen the device mode directly.
+    # The node is ephemeral and single-tenant, so 0666 is safe here. When the
+    # node has no nested virtualization /dev/kvm is absent and validate.yml
+    # falls back to TCG software emulation.
+    - name: Check whether /dev/kvm is present
+      ansible.builtin.stat:
+        path: /dev/kvm
+      register: kvm_device
+
+    - name: Grant the build user access to /dev/kvm for the validation boot
+      become: true
+      ansible.builtin.file:
+        path: /dev/kvm
+        mode: "0666"
+      when: kvm_device.stat.exists
+
     - name: Install Python requirements into a virtualenv
       ansible.builtin.pip:
         requirements: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}/requirements.txt"
