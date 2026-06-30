@@ -3,12 +3,6 @@
 Images intended for use with Kubernetes CAPI providers. More details on
 https://image-builder.sigs.k8s.io/capi/capi.html.
 
-The images are built with [diskimage-builder](https://docs.openstack.org/diskimage-builder/latest/),
-driven by the custom `k8s-capi` element under `elements/`. The element
-reuses the upstream [Image Builder](https://github.com/kubernetes-sigs/image-builder/)
-Ansible roles, pinned to an immutable commit, so the resulting
-`ubuntu-2404-kube-vX.YY` qcow2 images match what Image Builder produces.
-
 When a Kubernetes series changes to EOL status, the corresponding builds
 are deactivated here and only the last version of this series will remain
 available as an image in the future.
@@ -17,7 +11,35 @@ The following images contain the latest [stable releases](https://kubernetes.io/
 which are updated as required. This means that the image for version `1.27`
 contains, for example, version `1.27.3`.
 
-## Building images
+> [!IMPORTANT]
+> **Migration in progress — Packer → diskimage-builder.**
+>
+> This repository is being migrated from the old Packer +
+> [`kubernetes-sigs/image-builder`](https://github.com/kubernetes-sigs/image-builder/)
+> pipeline (the **old world**) to a new
+> [diskimage-builder](https://docs.openstack.org/diskimage-builder/latest/) based
+> pipeline (the **new world**).
+>
+> **The new DIB pipeline is still being tested and is not finished yet.**
+> Publishing from the DIB pipeline is **not armed** — the `post`/publish jobs and
+> the upload secret in `.zuul.yaml` are intentionally commented out, and goss image
+> validation is still being wired up
+> ([#338](https://github.com/osism/k8s-capi-images/issues/338)).
+>
+> Until the cutover, **all images available at the URLs in this document are still
+> built with the old Packer pipeline.** Once the DIB pipeline is armed, the same
+> URLs and naming will serve DIB-built images, so no consumer-side change will be
+> required.
+
+## New world: diskimage-builder (DIB)
+
+The images are built with [diskimage-builder](https://docs.openstack.org/diskimage-builder/latest/),
+driven by the custom `k8s-capi` element under `elements/`. The element
+reuses the upstream [Image Builder](https://github.com/kubernetes-sigs/image-builder/)
+Ansible roles, pinned to an immutable commit, so the resulting
+`ubuntu-2404-kube-vX.YY` qcow2 images match what Image Builder produces.
+
+### Building images
 
 Each Kubernetes series and its gardener variant is described by an override
 file under `overrides/`, for example `overrides/v1.33.json` or
@@ -33,14 +55,39 @@ To build an image locally on a Linux host with qemu/libguestfs:
 ./build-local.sh v1.33-gardener
 ```
 
-In CI, Zuul builds every series and variant on the `check` pipeline and, on
-the `post` pipeline after a merge to `main`, publishes the qcow2 image, its
-`.CHECKSUM`, and the `last-X` pointer to the object storage. Gardener
-variants are published under the parallel `…-gardener` names. The published
-layout and naming are unchanged, so the URLs below and
-`scripts/generate-k8s-image-urls.sh` keep resolving.
+In CI, Zuul builds every series and variant on the `check` pipeline in
+build-only mode (`upload_image: false`) — nothing is published yet. The
+`post`/publish pipeline that uploads the qcow2 image, its `.CHECKSUM`, and the
+`last-X` pointer to the object storage is prepared but still commented out in
+`.zuul.yaml`; it will be armed once a maintainer regenerates the upload secret
+(see the note at the top of `.zuul.yaml`). The published layout and naming stay
+unchanged, so the URLs below and `scripts/generate-k8s-image-urls.sh` keep
+resolving after the cutover. Gardener variants are published under the parallel
+`…-gardener` names.
 
-## Kubernetes Versions
+### Kubernetes versions (new world / DIB)
+
+> [!NOTE]
+> These series are built by the DIB pipeline today, but **no DIB image has been
+> published yet** because publishing is not armed. The table below reflects the
+> build targets currently under test. After the cutover the images will be served
+> at the same URLs as the old-world table further down.
+
+| Series | Target Version | Variants          | End of Life | Status                         |
+|--------|----------------|-------------------|-------------|--------------------------------|
+| v1.36  | v1.36.2        | default, gardener | 2027-06-28  | under test — not yet published |
+| v1.35  | v1.35.6        | default, gardener | 2027-02-28  | under test — not yet published |
+| v1.34  | v1.34.9        | default, gardener | 2026-10-27  | under test — not yet published |
+| v1.33  | v1.33.13       | default, gardener | 2026-06-28  | under test — not yet published |
+
+## Old world: Packer / image-builder
+
+The previous pipeline built the images with Packer and the upstream
+`kubernetes-sigs/image-builder` project. **All images currently published at the
+URLs below were built with this old-world pipeline** and remain the authoritative
+artifacts until the DIB cutover is complete.
+
+### Kubernetes versions (old world / Packer) — currently published
 
 | Series | Current Version | Image URL                                                                                                                                                | End of Life |
 |--------|-----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|-------------|
@@ -48,6 +95,28 @@ layout and naming are unchanged, so the URLs below and
 | v1.35  | v1.35.6         | [ubuntu-2404-kube-v1.35.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.35/ubuntu-2404-kube-v1.35.qcow2)  | 2027-02-28  |
 | v1.34  | v1.34.9         | [ubuntu-2404-kube-v1.34.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.34/ubuntu-2404-kube-v1.34.qcow2)  | 2026-10-27  |
 | v1.33  | v1.33.13        | [ubuntu-2404-kube-v1.33.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.33/ubuntu-2404-kube-v1.33.qcow2)  | 2026-06-28  |
+
+### Archived
+
+This section contains images for Kubernetes versions that have reached End of Life (EOL).
+These images are no longer updated but remain available for download. Only the final
+patch version of each EOL series is kept. All archived images were built with the
+old-world Packer pipeline.
+
+| Series | Version  | Image URL                                                                                                                                                 | CHECKSUM URL                                                                                                                                                              |
+|--------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| v1.32  |          |                                                                                                                                                           |                                                                                                                                                                           |
+|        | v1.32.13 | [ubuntu-2204-kube-v1.32.13.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.13.qcow2) | [ubuntu-2204-kube-v1.32.13.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.13.qcow2.CHECKSUM) |
+| v1.31  |          |                                                                                                                                                                                                               |                                                                                                                                                                                                                               |
+|        | v1.31.14 | [ubuntu-2204-kube-v1.31.14.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.31/ubuntu-2204-kube-v1.31.14.qcow2)   | [ubuntu-2204-kube-v1.31.14.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.31/ubuntu-2204-kube-v1.31.14.qcow2.CHECKSUM) |
+| v1.30  |          |                                                                                                                                                           |                                                                                                                                                                           |
+|        | v1.30.14 | [ubuntu-2204-kube-v1.30.14.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.30/ubuntu-2204-kube-v1.30.14.qcow2) | [ubuntu-2204-kube-v1.30.14.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.30/ubuntu-2204-kube-v1.30.14.qcow2.CHECKSUM) |
+| v1.29  |          |                                                                                                                                                           |                                                                                                                                                                           |
+|        | v1.29.15 | [ubuntu-2204-kube-v1.29.15.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.29/ubuntu-2204-kube-v1.29.15.qcow2) | [ubuntu-2204-kube-v1.29.15.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.29/ubuntu-2204-kube-v1.29.15.qcow2.CHECKSUM) |
+| v1.28  |          |                                                                                                                                                           |                                                                                                                                                                           |
+|        | v1.28.15 | [ubuntu-2204-kube-v1.28.15.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.28/ubuntu-2204-kube-v1.28.15.qcow2) | [ubuntu-2204-kube-v1.28.15.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.28/ubuntu-2204-kube-v1.28.15.qcow2.CHECKSUM) |
+| v1.27  |          |                                                                                                                                                           |                                                                                                                                                                           |
+|        | v1.27.15 | [ubuntu-2204-kube-v1.27.15.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.27/ubuntu-2204-kube-v1.27.15.qcow2) | [ubuntu-2204-kube-v1.27.15.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.27/ubuntu-2204-kube-v1.27.15.qcow2.CHECKSUM) |
 
 ## Determining Current Versions
 
@@ -141,25 +210,3 @@ The `--cleanup` flag only removes the image if it was downloaded during the veri
 Files that already existed locally are never deleted.
 
 The script exits with code `0` on success and `1` on checksum mismatch.
-
-## Archived
-
-This section contains images for Kubernetes versions that have reached End of Life (EOL).
-These images are no longer updated but remain available for download. Only the final
-patch version of each EOL series is kept.
-
-| Series | Version  | Image URL                                                                                                                                                 | CHECKSUM URL                                                                                                                                                              |
-|--------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| v1.32  |          |                                                                                                                                                           |                                                                                                                                                                           |
-|        | v1.32.13 | [ubuntu-2204-kube-v1.32.13.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.13.qcow2) | [ubuntu-2204-kube-v1.32.13.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.13.qcow2.CHECKSUM) |
-| v1.31  |          |                                                                                                                                                                                                               |                                                                                                                                                                                                                               |
-|        | v1.31.14 | [ubuntu-2204-kube-v1.31.14.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.31/ubuntu-2204-kube-v1.31.14.qcow2)   | [ubuntu-2204-kube-v1.31.14.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.31/ubuntu-2204-kube-v1.31.14.qcow2.CHECKSUM) |
-| v1.30  |          |                                                                                                                                                           |                                                                                                                                                                           |
-|        | v1.30.14 | [ubuntu-2204-kube-v1.30.14.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.30/ubuntu-2204-kube-v1.30.14.qcow2) | [ubuntu-2204-kube-v1.30.14.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.30/ubuntu-2204-kube-v1.30.14.qcow2.CHECKSUM) |
-| v1.29  |          |                                                                                                                                                           |                                                                                                                                                                           |
-|        | v1.29.15 | [ubuntu-2204-kube-v1.29.15.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.29/ubuntu-2204-kube-v1.29.15.qcow2) | [ubuntu-2204-kube-v1.29.15.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.29/ubuntu-2204-kube-v1.29.15.qcow2.CHECKSUM) |
-| v1.28  |          |                                                                                                                                                           |                                                                                                                                                                           |
-|        | v1.28.15 | [ubuntu-2204-kube-v1.28.15.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.28/ubuntu-2204-kube-v1.28.15.qcow2) | [ubuntu-2204-kube-v1.28.15.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.28/ubuntu-2204-kube-v1.28.15.qcow2.CHECKSUM) |
-| v1.27  |          |                                                                                                                                                           |                                                                                                                                                                           |
-|        | v1.27.15 | [ubuntu-2204-kube-v1.27.15.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.27/ubuntu-2204-kube-v1.27.15.qcow2) | [ubuntu-2204-kube-v1.27.15.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.27/ubuntu-2204-kube-v1.27.15.qcow2.CHECKSUM) |
-
