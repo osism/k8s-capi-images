@@ -1,6 +1,6 @@
 {
     "containerd_version": "1.7.30",
-    "kubernetes_deb_version": "1.36.2-2.1",
+    "kubernetes_deb_version": "1.36.2-1.1",
     "kubernetes_semver": "v1.36.2",
     "kubernetes_series": "v1.36",
     "runc_version": "1.4.0"
