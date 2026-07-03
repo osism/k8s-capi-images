@@ -1,25 +1,29 @@
 ---
-# NOTE: the object-storage publish pipeline below is intentionally commented out
-# for now and will be armed later. It comprises the SECRET_K8S_CAPI_IMAGES
-# secret, the publish jobs, the project "post" pipeline (all below), and the two
-# upload tasks in playbooks/build.yml. To arm it: regenerate the secret with real
-# credentials (see the note below), then uncomment the secret block, the publish
-# jobs and the project "post" section here, plus the upload tasks in build.yml.
-# The ACCESS_KEY/SECRET_KEY values below are placeholders that base64-decode to
-# "REPLACE_WITH_ZUUL_ENCRYPTED_..." and only exist to keep this Zuul config
-# valid. A maintainer holding the object-storage credentials MUST regenerate
-# them for this project before the publish jobs can upload, for example:
-#   echo -n "<ACCESS_KEY>" | zuul-client encrypt --tenant <tenant> \
-#     --project osism/k8s-capi-images --secret-name SECRET_K8S_CAPI_IMAGES \
-#     --field ACCESS_KEY
-# and likewise for SECRET_KEY, pasting the !encrypted/pkcs1-oaep output here.
-# - secret:
-#     name: SECRET_K8S_CAPI_IMAGES
-#     data:
-#       ACCESS_KEY: !encrypted/pkcs1-oaep
-#         - UkVQTEFDRV9XSVRIX1pVVUxfRU5DUllQVEVEX0FDQ0VTU19LRVk=
-#       SECRET_KEY: !encrypted/pkcs1-oaep
-#         - UkVQTEFDRV9XSVRIX1pVVUxfRU5DUllQVEVEX1NFQ1JFVF9LRVk=
+- secret:
+    name: SECRET_K8S_CAPI_IMAGES
+    data:
+      ACCESS_KEY: !encrypted/pkcs1-oaep
+        - mfLKAb9ukm+puFda84AMe4ExBY42JAIAR4BqWkBbFZnwpbBx1+vLLG6vDwB6qmFijJ3Bh
+          BMv/9L4LQET2XRKTCHN5wJwTBTPj2J/7aTDxOLWn/i44KMZprhpwC4Vi+ZBdUCI1YoLba
+          g2yYgBNMGzn3/jKzKxmAACGE/yuI0JYnlqTsN5mMkaYhSL1JuZVTaY1oPbPmOzcKZuV1A
+          WliXU8wdryTs4Z30Q/08fqdu15hiiWQY6T1Ddq5Gw3n3tV4HqKq5DdqkTKJNm/ySkTCHW
+          n8R3VvHpY2OEKCFhVyx5nzCSI+nHjgysW/fGFkT4/obKtov0ii+7uTsnBhDdFvVn9E9rn
+          HEKfbyYfZXijwAahLpiLe9pVYvft+QRfbsxKqn79Mesw5iinbrRdKhQLcWDcIg0TsNVo+
+          5AHe/VxAUknt+Dl8SsmJ+0ITxmlZWtkQEetVg8CpmiMzuYeEyVjE+76xIYHh7njWPh2AC
+          0ATTBAuaM3PsCPZSxdDIOhIqcwQU8HUKBGyNCRJShtmT11iPzeLnlPJdSkUfedQCi+9vi
+          DWyb+HYuqG5qXIzQOGRJbER6DvARayVYhXgtOsDuv2vhhc2EiZpskonzzwXrKXpOEr/po
+          o3F6HZRRzxt2aupdB+mgKaZ458MH23Pz3DOZR3PVFg02lNSGTM1RM/nlCI+J4w=
+      SECRET_KEY: !encrypted/pkcs1-oaep
+        - GaCjzgXF9HVb4KdW3kDHEHDRzi4RMFJ1rc/PhN79aK+PrxZri31Yl/5HUOBw3H8G3ykfd
+          zGsqIL6F4VqFQIp/1D/GRl8Jt+6dujJ1Ufwb+C++2NueNE0JB/oN18AaMtp4YmErkk9El
+          8LIulz57NHR3xoZEwcn6GhqTeIT1Km/c9EW1+5aBWPTDOHNmptwr7TD2qo5NNE7/zAlA9
+          360pX6Qmu0hd7CvlM4MrOy4rof9wakN5bQYnWT1G750ZW33gLrwTFv3evT97bFC1ba7z1
+          hoWLp/rvi2AodYEWS21siu6QxpXUcSUIAEk7Ws6CMq0TeJhuC1KsV9nYnwUU6WqXwnnJj
+          ER2lNsOwSrCIt5C2hPLpaoyWKl7hNpgDEvkdlpZVVPkh6Ol+NoRJ9OwxduFza3P9UpMEC
+          cZzJt163wJe6F0AypPt/2L8UyxHvTzpGHlWyZIdanG2wJEWR7hdmBOSznIwae9xpeRMsh
+          E5fRcH7pTqqbQ3i37FxHENAA6krQYZC7fZMuX6/uejx32pXqqyI1Cnb9fAWFsfuuc2k3Y
+          v+qkJZB8QJkIosT7t3M8MzbnSDpx6sDy4ZtcnUVCaBVBRmfzunzpV9vL93RdYvjlpRMe3
+          avb2hxSMfH0al4xskiDr8bBKEw1B+PkJ8USlHEeCAQJRZwcSkIE6WkhuNvF2TM=
 
 - job:
     name: abstract-k8s-capi-images-build
@@ -32,12 +36,12 @@
     vars:
       upload_image: false
 
-# - job:
-#     name: abstract-k8s-capi-images-publish
-#     abstract: true
-#     parent: abstract-k8s-capi-images-build
-#     vars:
-#       upload_image: true
+- job:
+    name: abstract-k8s-capi-images-publish
+    abstract: true
+    parent: abstract-k8s-capi-images-build
+    vars:
+      upload_image: true
 
 - job:
     name: k8s-capi-images-build-v1.33
@@ -219,17 +223,17 @@
 #         secret: SECRET_K8S_CAPI_IMAGES
 #         pass-to-parent: true
 
-# - job:
-#     name: k8s-capi-images-publish-v1.36-gardener
-#     parent: abstract-k8s-capi-images-publish
-#     vars:
-#       kubernetes_version: v1.36
-#       variant: gardener
-#     files: *files_v1_36_gardener
-#     secrets:
-#       - name: secret
-#         secret: SECRET_K8S_CAPI_IMAGES
-#         pass-to-parent: true
+- job:
+    name: k8s-capi-images-publish-v1.36-gardener
+    parent: abstract-k8s-capi-images-publish
+    vars:
+      kubernetes_version: v1.36
+      variant: gardener
+    files: *files_v1_36_gardener
+    secrets:
+      - name: secret
+        secret: SECRET_K8S_CAPI_IMAGES
+        pass-to-parent: true
 
 - project:
     merge-mode: squash-merge
@@ -246,8 +250,8 @@
         - k8s-capi-images-build-v1.35-gardener
         - k8s-capi-images-build-v1.36
         - k8s-capi-images-build-v1.36-gardener
-#     post:
-#       jobs:
+    post:
+      jobs:
 #         - k8s-capi-images-publish-v1.33:
 #             branches: main
 #         - k8s-capi-images-publish-v1.33-gardener:
@@ -262,5 +266,5 @@
 #             branches: main
 #         - k8s-capi-images-publish-v1.36:
 #             branches: main
-#         - k8s-capi-images-publish-v1.36-gardener:
-#             branches: main
+        - k8s-capi-images-publish-v1.36-gardener:
+            branches: main
