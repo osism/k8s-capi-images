@@ -10,7 +10,6 @@ import os
 import re
 import sys
 import urllib.error
-import urllib.parse
 import urllib.request
 
 
@@ -18,7 +17,17 @@ import urllib.request
 # Variables
 ###############################################################################
 
-github_api = "https://api.github.com/repos/kubernetes/kubernetes/tags"
+# The apt repository the image build itself installs from, so it is the only
+# source that can tell us which versions are actually installable. Deriving the
+# version from the Kubernetes git tags instead would guess the Debian revision
+# suffix (it is not always "-1.1", e.g. 1.36.2 ships as 1.36.2-2.1) and would
+# pick up a tag before its packages have been built.
+package_index_url = "https://pkgs.k8s.io/core:/stable:/{series}/deb/Packages"
+
+# The image build pins these to a single version, so only a version that all of
+# them share is usable.
+required_packages = ("kubeadm", "kubectl", "kubelet")
+
 file = sys.argv[1]
 script_dir = os.path.dirname(os.path.abspath(__file__))
 readme_path = os.path.join(script_dir, "..", "README.md")
@@ -35,70 +44,70 @@ def load_file(file):
     return data
 
 
-def traverse_pagination():
-    # check, how many pages can be traversed by using the mozilla header
-    # more information:
-    # https://docs.github.com/en/rest/guides/traversing-with-pagination
-    query_url = github_api + "?q=addClass+user:mozilla&per_page=100"
-    with urllib.request.urlopen(query_url, timeout=30) as url:
-        link = url.getheader("link")
+def parse_package_index(index):
+    """Map each package name in a Debian "Packages" index to its versions.
 
-    # A response without a Link header has only a single page of results
-    # (one result page, or the rel="last" entry is simply absent), so there
-    # is nothing further to traverse.
-    if not link:
-        return 1
+    Stanzas are separated by a blank line and repeat per architecture, hence
+    the set of versions per package rather than a single value.
+    """
+    versions = {}
 
-    # Extract the page number from the rel="last" entry, e.g. the segment
-    #   <https://api.github.com/...&per_page=100&page=8>; rel="last"
-    # yields 8.
-    last = re.search(r'[?&]page=(\d+)>;\s*rel="last"', link)
-    return int(last.group(1)) if last else 1
+    for stanza in index.split("\n\n"):
+        name = None
+        version = None
+        for line in stanza.splitlines():
+            # Continuation lines (e.g. inside Description) are indented, so a
+            # field only counts when its name starts the line.
+            if line.startswith("Package:"):
+                name = line.partition(":")[2].strip()
+            elif line.startswith("Version:"):
+                version = line.partition(":")[2].strip()
+        if name and version:
+            versions.setdefault(name, set()).add(version)
+
+    return versions
+
+
+def deb_version_key(version):
+    """Sort key comparing each numeric run of a version as a number.
+
+    A plain string compare would sort 1.33.9-1.1 above 1.33.13-1.1.
+    """
+    return tuple(
+        (0, int(part)) if part.isdigit() else (1, part)
+        for part in re.findall(r"\d+|\D+", version)
+    )
+
+
+def latest_deb_version(series):
+    """Return the newest version of the series that all required packages share."""
+    url = package_index_url.format(series=series)
+    with urllib.request.urlopen(url, timeout=30) as response:
+        versions = parse_package_index(response.read().decode())
+
+    shared = set.intersection(
+        *(versions.get(package, set()) for package in required_packages)
+    )
+
+    # The repository of a series carries packages of other series too (cri-tools
+    # for instance), so restrict the candidates to the series being updated.
+    prefix = series.lstrip("v") + "."
+    candidates = [version for version in shared if version.startswith(prefix)]
+
+    if not candidates:
+        raise LookupError(
+            f"{url} lists no {prefix}x version shared by {', '.join(required_packages)}"
+        )
+
+    return max(candidates, key=deb_version_key)
 
 
 def update_version(data):
-    new_version = "v0.0.0"
-    versions_list = []
-    number_of_pages = traverse_pagination()
-
-    # loop number of pages and query 100 tags each time
-    # and break, if we found a matching tag to avoid too much api queries
-    for page in range(number_of_pages):
-        query_url = github_api + "?per_page=100&page=" + str(page)
-        with urllib.request.urlopen(query_url, timeout=30) as url:
-            # check the 100 tags if they are valid and append
-            # them to the list "versions"
-            for entry in json.loads(url.read().decode()):
-                if (
-                    "rc" not in entry["name"]
-                    and "alpha" not in entry["name"]
-                    and "beta" not in entry["name"]
-                ):
-                    versions_list.append(entry["name"])
-
-            # find the first entry in version_list that matches
-            # the series (v1.28 matches v1.28.3)
-            for entry in versions_list:
-                if data["kubernetes_series"] in entry:
-                    new_version = entry
-                    break
-
-            # if new_version is set, a match was found. The page loop can be
-            # exited by a break.
-            # otherwise the loop will continue and search for a match.
-            if not new_version == "v0.0.0":
-                break
-
-    # check if we really found a match
-    if not new_version == "v0.0.0":
-        # e.g. 1.28.2-1.1
-        data["kubernetes_deb_version"] = new_version[1:] + "-1.1"
-        # e.g. v1.28.2
-        data["kubernetes_semver"] = new_version
-        # e.g. v1.28
-        data["kubernetes_series"] = (
-            new_version.split(".")[0] + "." + new_version.split(".")[1]
-        )
+    # e.g. 1.36.2-2.1
+    deb_version = latest_deb_version(data["kubernetes_series"])
+    data["kubernetes_deb_version"] = deb_version
+    # e.g. v1.36.2
+    data["kubernetes_semver"] = "v" + deb_version.split("-")[0]
 
     return data
 
@@ -118,6 +127,17 @@ def update_readme(series, new_version):
     with open(readme_path, "r") as f:
         content = f.read()
 
+    # This script maintains the versions that get built, so it may only rewrite
+    # the "Target Version" table. The README carries a second table listing the
+    # versions the old Packer pipeline actually published; rewriting that one
+    # would advertise images that do not exist.
+    table = re.search(
+        r"\| Series \| Target Version \|.*?(?=\n\n|\Z)", content, re.DOTALL
+    )
+    if not table:
+        print("Warning: no 'Target Version' table found in README.md")
+        return
+
     # Pattern to match the table row for this series
     # Matches: | v1.32  | v1.32.8         | [ubuntu-...
     # Captures the version and trailing spaces together to calculate total width
@@ -132,11 +152,12 @@ def update_readme(series, new_version):
         new_version_padded = new_version.ljust(total_width)
         return prefix + new_version_padded + suffix
 
-    new_content = re.sub(pattern, replace_version, content)
+    updated_table = re.sub(pattern, replace_version, table.group(0))
 
-    if new_content != content:
+    if updated_table != table.group(0):
+        start, end = table.span()
         with open(readme_path, "w") as f:
-            f.write(new_content)
+            f.write(content[:start] + updated_table + content[end:])
         print(f"Updated README.md: {series} -> {new_version}")
     else:
         print(f"README.md already up to date for {series}")
@@ -149,10 +170,10 @@ def update_readme(series, new_version):
 original_data = load_file(file)
 try:
     updated_data = update_version(original_data)
-except (urllib.error.URLError, TimeoutError) as err:
-    # GitHub rate-limits unauthenticated requests (60/hour) with a 403 and the
-    # endpoint can stall or be unreachable. Fail this file loudly instead of
-    # crashing with a traceback so the surrounding loop can move on.
+except (urllib.error.URLError, TimeoutError, LookupError) as err:
+    # An unknown series answers with a 403 rather than a 404, and the endpoint
+    # can stall or be unreachable. Fail this file loudly instead of crashing
+    # with a traceback so the surrounding loop can move on.
     print(f"Error: could not fetch Kubernetes versions for {file}: {err}")
     sys.exit(1)
 
