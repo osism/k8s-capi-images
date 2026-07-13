@@ -88,7 +88,7 @@
 
     - name: Write the rclone configuration with the object-storage credentials
       ansible.builtin.copy:
-        dest: "{{ zuul.project.src_dir }}/.rclone.conf"
+        dest: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}/.rclone.conf"
         mode: "0600"
         content: |
           [s3]
@@ -120,7 +120,7 @@
           rclone copyto "${FILE}.CHECKSUM" "s3:osism/openstack-k8s-capi-images/${IMAGE_DIR}/${FILE}.CHECKSUM"
           rclone copyto "${LAST_FILE}" "s3:osism/openstack-k8s-capi-images/${LAST_FILE}"
       environment:
-        RCLONE_CONFIG: "{{ zuul.project.src_dir }}/.rclone.conf"
+        RCLONE_CONFIG: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}/.rclone.conf"
         IMAGE_DIR: "{{ image_dir }}"
         IMAGE_BASENAME: "{{ image_basename }}"
         LAST_FILE: "{{ last_file }}"
