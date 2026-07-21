@@ -199,29 +199,29 @@
 #         secret: SECRET_K8S_CAPI_IMAGES
 #         pass-to-parent: true
 
-# - job:
-#     name: k8s-capi-images-publish-v1.35
-#     parent: abstract-k8s-capi-images-publish
-#     vars:
-#       kubernetes_version: v1.35
-#       variant: ""
-#     files: *files_v1_35
-#     secrets:
-#       - name: secret
-#         secret: SECRET_K8S_CAPI_IMAGES
-#         pass-to-parent: true
+- job:
+    name: k8s-capi-images-publish-v1.35
+    parent: abstract-k8s-capi-images-publish
+    vars:
+      kubernetes_version: v1.35
+      variant: ""
+    files: *files_v1_35
+    secrets:
+      - name: secret
+        secret: SECRET_K8S_CAPI_IMAGES
+        pass-to-parent: true
 
-# - job:
-#     name: k8s-capi-images-publish-v1.35-gardener
-#     parent: abstract-k8s-capi-images-publish
-#     vars:
-#       kubernetes_version: v1.35
-#       variant: gardener
-#     files: *files_v1_35_gardener
-#     secrets:
-#       - name: secret
-#         secret: SECRET_K8S_CAPI_IMAGES
-#         pass-to-parent: true
+- job:
+    name: k8s-capi-images-publish-v1.35-gardener
+    parent: abstract-k8s-capi-images-publish
+    vars:
+      kubernetes_version: v1.35
+      variant: gardener
+    files: *files_v1_35_gardener
+    secrets:
+      - name: secret
+        secret: SECRET_K8S_CAPI_IMAGES
+        pass-to-parent: true
 
 - job:
     name: k8s-capi-images-publish-v1.36
@@ -272,10 +272,10 @@
 #             branches: main
 #         - k8s-capi-images-publish-v1.34-gardener:
 #             branches: main
-#         - k8s-capi-images-publish-v1.35:
-#             branches: main
-#         - k8s-capi-images-publish-v1.35-gardener:
-#             branches: main
+        - k8s-capi-images-publish-v1.35:
+            branches: main
+        - k8s-capi-images-publish-v1.35-gardener:
+            branches: main
         - k8s-capi-images-publish-v1.36:
             branches: main
         - k8s-capi-images-publish-v1.36-gardener:
