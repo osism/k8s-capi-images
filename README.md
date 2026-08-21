@@ -100,7 +100,7 @@ and
 
 | Series | Target Version | Variants          | End of Life | Status                         |
 |--------|----------------|-------------------|-------------|--------------------------------|
-| v1.34  | v1.34.10       | default, gardener | 2026-10-27  | under test — not yet published |
+| v1.34  | v1.34.11       | default, gardener | 2026-10-27  | under test — not yet published |
 | v1.33  | v1.33.13       | default, gardener | 2026-06-28  | under test — not yet published |
 
 ## Old world: Packer / image-builder
