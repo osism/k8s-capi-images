@@ -25,6 +25,10 @@ jobs:
         run: pip3 install ruamel.yaml
 
       - uses: technote-space/create-pr-action@v2
+        env:
+          # Raises the GitHub API rate limit for the containerd/runc release
+          # lookups in update-extra-vars.py from 60 to 5000 requests/hour.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           EXECUTE_COMMANDS: |
             ./scripts/run-update-extra-vars.sh
