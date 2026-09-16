@@ -56,6 +56,18 @@ How it works
   JSON ``null`` with the empty string, so a direct ``ansible-playbook`` run
   behaves like Packer's variable handling.
 
+``install.d/10-restore-cloud-init-datasources`` (in the chroot)
+  Removes the cloud-init datasource restriction that DIB's
+  ``cloud-init-datasources`` element writes just before. The ``ubuntu`` element
+  hard-depends on that element and defaults ``DIB_CLOUD_INIT_DATASOURCES`` to
+  ``Ec2``, which leaves ``datasource_list: [ Ec2, None ]`` in the image: the
+  ConfigDrive and OpenStack datasources are never probed, the CAPI user-data on
+  a config drive is ignored, and the node only ever tries plain DHCP. Dropping
+  the DIB files restores the stock Ubuntu list (``90_dpkg.cfg``) that the
+  Packer-built images ship, so ``ds-identify`` selects the datasource from DMI
+  and the attached drive again. The hook fails the build if any other file
+  still restricts the list.
+
 ``install.d/50-install-ansible`` (in the chroot)
   Builds a throwaway virtualenv with the ``ansible-core`` version image-builder
   pins at the chosen ref and installs the ``community.general`` and

@@ -1,0 +1,45 @@
+#!/bin/bash
+# Runs in the chroot, right after DIB's cloud-init-datasources element
+# (install.d/05-set-cloud-init-sources). Restores the stock Ubuntu cloud-init
+# datasource configuration that the Packer-built images ship.
+#
+# DIB's ubuntu element hard-depends on cloud-init-datasources and defaults
+# DIB_CLOUD_INIT_DATASOURCES to "Ec2", so every image built from it gets
+# "datasource_list: [ Ec2, None ]". With a single-entry list, ds-identify skips
+# platform detection and cloud-init only ever probes the Ec2 datasource. On
+# OpenStack that breaks the node bootstrap (osism/k8s-capi-images#348):
+#
+#   * the ConfigDrive and OpenStack datasources are never consulted, so the
+#     CAPI user-data (kubeadm init/join) on a config drive is ignored and the
+#     network_data.json is never applied;
+#   * the local-stage Ec2 datasource only runs on AWS/Outscale, so the node
+#     falls back to plain DHCP; on ports whose addressing comes from
+#     network_data.json the interface never gets an address, cloud-init cannot
+#     reach 169.254.169.254, gives up on Ec2 and ends on DataSourceNone.
+#
+# The element cannot be left out (ubuntu depends on it) and refuses an empty
+# list, so let it write its files and remove them again here. The result is the
+# unrestricted list from the cloud-init package (90_dpkg.cfg), where ds-identify
+# picks ConfigDrive/OpenStack from DMI and the attached drive, exactly as in the
+# Packer-built images.
+
+if [ "${DIB_DEBUG_TRACE:-0}" -gt 0 ]; then
+    set -x
+fi
+set -euo pipefail
+
+CFG_DIR=/etc/cloud/cloud.cfg.d
+
+rm -f "${CFG_DIR}/91-dib-cloud-init-datasources.cfg" \
+      "${CFG_DIR}/92-ec2-datasource.cfg" \
+      "${CFG_DIR}/93-dib-cloud-init-disable-datasource-network-activation.cfg"
+
+# Guard against DIB renaming its files: after the removal, no file except the
+# cloud-init package's own 90_dpkg.cfg may still restrict the datasource list.
+leftover="$(grep -ls '^datasource_list:' "${CFG_DIR}"/* \
+    | grep -v '/90_dpkg\.cfg$' || true)"
+if [ -n "${leftover}" ]; then
+    echo "ERROR: unexpected datasource_list restriction left in ${CFG_DIR}:" >&2
+    echo "${leftover}" >&2
+    exit 1
+fi
