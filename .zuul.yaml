@@ -48,32 +48,6 @@
 # CHECKSUM pre-check in playbooks/build.yml keeps the publish jobs idempotent:
 # an already-published image is not rebuilt or overwritten.
 - job:
-    name: k8s-capi-images-build-v1.33
-    parent: abstract-k8s-capi-images-build
-    vars:
-      kubernetes_version: v1.33
-      variant: ""
-    files: &files_v1_33
-      - ^overrides/v1\.33\.json$
-      - ^elements/k8s-capi/.*
-      - ^playbooks/.*
-      - ^requirements\.txt$
-      - ^\.zuul\.yaml$
-
-- job:
-    name: k8s-capi-images-build-v1.33-gardener
-    parent: abstract-k8s-capi-images-build
-    vars:
-      kubernetes_version: v1.33
-      variant: gardener
-    files: &files_v1_33_gardener
-      - ^overrides/v1\.33-gardener\.json$
-      - ^elements/k8s-capi/.*
-      - ^playbooks/.*
-      - ^requirements\.txt$
-      - ^\.zuul\.yaml$
-
-- job:
     name: k8s-capi-images-build-v1.34
     parent: abstract-k8s-capi-images-build
     vars:
@@ -151,53 +125,29 @@
       - ^requirements\.txt$
       - ^\.zuul\.yaml$
 
-# - job:
-#     name: k8s-capi-images-publish-v1.33
-#     parent: abstract-k8s-capi-images-publish
-#     vars:
-#       kubernetes_version: v1.33
-#       variant: ""
-#     files: *files_v1_33
-#     secrets:
-#       - name: secret
-#         secret: SECRET_K8S_CAPI_IMAGES
-#         pass-to-parent: true
+- job:
+    name: k8s-capi-images-publish-v1.34
+    parent: abstract-k8s-capi-images-publish
+    vars:
+      kubernetes_version: v1.34
+      variant: ""
+    files: *files_v1_34
+    secrets:
+      - name: secret
+        secret: SECRET_K8S_CAPI_IMAGES
+        pass-to-parent: true
 
-# - job:
-#     name: k8s-capi-images-publish-v1.33-gardener
-#     parent: abstract-k8s-capi-images-publish
-#     vars:
-#       kubernetes_version: v1.33
-#       variant: gardener
-#     files: *files_v1_33_gardener
-#     secrets:
-#       - name: secret
-#         secret: SECRET_K8S_CAPI_IMAGES
-#         pass-to-parent: true
-
-# - job:
-#     name: k8s-capi-images-publish-v1.34
-#     parent: abstract-k8s-capi-images-publish
-#     vars:
-#       kubernetes_version: v1.34
-#       variant: ""
-#     files: *files_v1_34
-#     secrets:
-#       - name: secret
-#         secret: SECRET_K8S_CAPI_IMAGES
-#         pass-to-parent: true
-
-# - job:
-#     name: k8s-capi-images-publish-v1.34-gardener
-#     parent: abstract-k8s-capi-images-publish
-#     vars:
-#       kubernetes_version: v1.34
-#       variant: gardener
-#     files: *files_v1_34_gardener
-#     secrets:
-#       - name: secret
-#         secret: SECRET_K8S_CAPI_IMAGES
-#         pass-to-parent: true
+- job:
+    name: k8s-capi-images-publish-v1.34-gardener
+    parent: abstract-k8s-capi-images-publish
+    vars:
+      kubernetes_version: v1.34
+      variant: gardener
+    files: *files_v1_34_gardener
+    secrets:
+      - name: secret
+        secret: SECRET_K8S_CAPI_IMAGES
+        pass-to-parent: true
 
 - job:
     name: k8s-capi-images-publish-v1.35
@@ -254,8 +204,6 @@
       jobs:
         - flake8
         - yamllint
-        - k8s-capi-images-build-v1.33
-        - k8s-capi-images-build-v1.33-gardener
         - k8s-capi-images-build-v1.34
         - k8s-capi-images-build-v1.34-gardener
         - k8s-capi-images-build-v1.35
@@ -264,14 +212,10 @@
         - k8s-capi-images-build-v1.36-gardener
     post:
       jobs:
-#         - k8s-capi-images-publish-v1.33:
-#             branches: main
-#         - k8s-capi-images-publish-v1.33-gardener:
-#             branches: main
-#         - k8s-capi-images-publish-v1.34:
-#             branches: main
-#         - k8s-capi-images-publish-v1.34-gardener:
-#             branches: main
+        - k8s-capi-images-publish-v1.34:
+            branches: main
+        - k8s-capi-images-publish-v1.34-gardener:
+            branches: main
         - k8s-capi-images-publish-v1.35:
             branches: main
         - k8s-capi-images-publish-v1.35-gardener:
