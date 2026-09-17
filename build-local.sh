@@ -11,7 +11,7 @@
 #
 # Environment:
 #   DIB_K8S_IMAGE_BUILDER_REF  image-builder commit SHA to run (default: the
-#                              commit for tag v0.1.52)
+#                              commit for tag v0.1.55)
 #
 # Requires Linux with root/sudo and qemu/libguestfs; it does not run on macOS.
 
