@@ -21,10 +21,10 @@ contains, for example, version `1.27.3`.
 > pipeline (the **new world**).
 >
 > **The `v1.36` images were the first images published from the DIB pipeline.**
-> Publishing is armed for `v1.35`, `v1.35-gardener`, `v1.36` and `v1.36-gardener`;
-> for all other series the `post`/publish jobs in `.zuul.yaml` are still commented
-> out, so those images continue to come from the old Packer pipeline. goss image
-> validation is still being wired up
+> Publishing is now armed for every series that is still built here — `v1.34`,
+> `v1.35`, `v1.36` and `v1.37`, each with its gardener variant. `v1.37` is the
+> first series that never had an old-world Packer build. goss image validation is
+> still being wired up
 > ([#338](https://github.com/osism/k8s-capi-images/issues/338)).
 >
 > DIB images are always published under their full patch version
@@ -62,9 +62,9 @@ To build an image locally on a Linux host with qemu/libguestfs:
 In CI, Zuul builds every series and variant on the `check` pipeline in
 build-only mode (`upload_image: false`). On the `post` pipeline, the publish jobs
 upload the qcow2 image, its `.CHECKSUM`, and the `last-X` pointer to the object
-storage. These jobs are armed for `v1.35`, `v1.35-gardener`, `v1.36` and
-`v1.36-gardener`; for the remaining series they are prepared but still commented
-out in `.zuul.yaml` and will be armed series by series as the migration proceeds.
+storage. These jobs are armed for every series and variant in `overrides/` that
+has build jobs, currently `v1.34` through `v1.37` in both the default and the
+gardener variant.
 
 Publishing is create-once per image version: a publish job checks whether the
 `.CHECKSUM` of the image it would upload already exists in the object storage and
@@ -76,20 +76,24 @@ under the parallel `…-gardener` names.
 ### Kubernetes versions (new world / DIB)
 
 > [!NOTE]
-> All series below are built by the DIB pipeline, but only `v1.35` and `v1.36`
-> are published from it so far. For every other series, the published image is
-> still the old-world Packer build listed further down.
+> All series below are built by the DIB pipeline. `v1.34`, `v1.35` and `v1.36`
+> are published from it; `v1.37` is armed but has not had a `post` run yet. The
+> unversioned Packer images listed further down are frozen and no longer updated.
 
 #### Published from the DIB pipeline
 
-| Series          | Version | Image URL                                                                                                                                                                              | CHECKSUM URL                                                                                                                                                                                              | End of Life |
-|-----------------|---------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------|
-| v1.36           | v1.36.4 | [ubuntu-2404-kube-v1.36.4.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.36/ubuntu-2404-kube-v1.36.4.qcow2)                            | [ubuntu-2404-kube-v1.36.4.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.36/ubuntu-2404-kube-v1.36.4.qcow2.CHECKSUM)                             | 2027-06-28  |
-| v1.36-gardener  | v1.36.4 | [ubuntu-2404-kube-v1.36.4-gardener.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.36-gardener/ubuntu-2404-kube-v1.36.4-gardener.qcow2) | [ubuntu-2404-kube-v1.36.4-gardener.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.36-gardener/ubuntu-2404-kube-v1.36.4-gardener.qcow2.CHECKSUM)  | 2027-06-28  |
-| v1.35           | v1.35.8 | [ubuntu-2404-kube-v1.35.8.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.35/ubuntu-2404-kube-v1.35.8.qcow2)                            | [ubuntu-2404-kube-v1.35.8.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.35/ubuntu-2404-kube-v1.35.8.qcow2.CHECKSUM)                             | 2027-02-28  |
-| v1.35-gardener  | v1.35.8 | [ubuntu-2404-kube-v1.35.8-gardener.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.35-gardener/ubuntu-2404-kube-v1.35.8-gardener.qcow2) | [ubuntu-2404-kube-v1.35.8-gardener.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.35-gardener/ubuntu-2404-kube-v1.35.8-gardener.qcow2.CHECKSUM)  | 2027-02-28  |
+| Series         | Version  | Image URL                                                                                                                                                                                | CHECKSUM URL                                                                                                                                                                                               | End of Life |
+|----------------|----------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------|
+| v1.36          | v1.36.4  | [ubuntu-2404-kube-v1.36.4.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.36/ubuntu-2404-kube-v1.36.4.qcow2)                              | [ubuntu-2404-kube-v1.36.4.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.36/ubuntu-2404-kube-v1.36.4.qcow2.CHECKSUM)                              | 2027-06-28  |
+| v1.36-gardener | v1.36.4  | [ubuntu-2404-kube-v1.36.4-gardener.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.36-gardener/ubuntu-2404-kube-v1.36.4-gardener.qcow2)   | [ubuntu-2404-kube-v1.36.4-gardener.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.36-gardener/ubuntu-2404-kube-v1.36.4-gardener.qcow2.CHECKSUM)   | 2027-06-28  |
+| v1.35          | v1.35.8  | [ubuntu-2404-kube-v1.35.8.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.35/ubuntu-2404-kube-v1.35.8.qcow2)                              | [ubuntu-2404-kube-v1.35.8.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.35/ubuntu-2404-kube-v1.35.8.qcow2.CHECKSUM)                              | 2027-02-28  |
+| v1.35-gardener | v1.35.8  | [ubuntu-2404-kube-v1.35.8-gardener.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.35-gardener/ubuntu-2404-kube-v1.35.8-gardener.qcow2)   | [ubuntu-2404-kube-v1.35.8-gardener.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.35-gardener/ubuntu-2404-kube-v1.35.8-gardener.qcow2.CHECKSUM)   | 2027-02-28  |
+| v1.34          | v1.34.11 | [ubuntu-2404-kube-v1.34.11.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.34/ubuntu-2404-kube-v1.34.11.qcow2)                            | [ubuntu-2404-kube-v1.34.11.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.34/ubuntu-2404-kube-v1.34.11.qcow2.CHECKSUM)                            | 2026-10-27  |
+| v1.34-gardener | v1.34.11 | [ubuntu-2404-kube-v1.34.11-gardener.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.34-gardener/ubuntu-2404-kube-v1.34.11-gardener.qcow2) | [ubuntu-2404-kube-v1.34.11-gardener.qcow2.CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.34-gardener/ubuntu-2404-kube-v1.34.11-gardener.qcow2.CHECKSUM) | 2026-10-27  |
 
 The current image of each series is also resolvable through its pointer file:
+[last-1.34](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.34),
+[last-1.34-gardener](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.34-gardener),
 [last-1.35](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.35),
 [last-1.35-gardener](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.35-gardener),
 [last-1.36](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.36)
@@ -98,26 +102,27 @@ and
 
 #### Built, not yet published
 
-| Series | Target Version | Variants          | End of Life | Status                         |
-|--------|----------------|-------------------|-------------|--------------------------------|
-| v1.34  | v1.34.11       | default, gardener | 2026-10-27  | under test — not yet published |
+| Series | Target Version | Variants          | End of Life | Status                                  |
+|--------|----------------|-------------------|-------------|-----------------------------------------|
+| v1.37  | v1.37.0        | default, gardener | 2027-10-28  | publish armed — awaiting first post run |
 
 ## Old world: Packer / image-builder
 
 The previous pipeline built the images with Packer and the upstream
-`kubernetes-sigs/image-builder` project. Except for `v1.35` and `v1.36`, which
-are published from the DIB pipeline now, all images published at the URLs below
-were built with this old-world pipeline and remain the authoritative artifacts
-until their series is migrated.
+`kubernetes-sigs/image-builder` project. Every image published at the URLs below
+was built with it. All of those series are published from the DIB pipeline now,
+so the unversioned files stay available but are frozen at their last Packer
+build.
 
 ### Kubernetes versions (old world / Packer) — currently published
 
 > [!WARNING]
-> The `v1.35` and `v1.36` images below are frozen Packer artifacts containing
+> The images below are frozen Packer artifacts containing **v1.34.8**,
 > **v1.35.5** and **v1.36.1** and are no longer updated. The unversioned
-> `ubuntu-2404-kube-v1.35.qcow2` and `ubuntu-2404-kube-v1.36.qcow2` files are not
-> written by the DIB pipeline, so they keep serving those old builds. For these
-> series, use the [DIB images above](#published-from-the-dib-pipeline).
+> `ubuntu-2404-kube-v1.34.qcow2`, `ubuntu-2404-kube-v1.35.qcow2` and
+> `ubuntu-2404-kube-v1.36.qcow2` files are not written by the DIB pipeline, so
+> they keep serving those old builds. For these series, use the
+> [DIB images above](#published-from-the-dib-pipeline).
 
 | Series | Current Version | Image URL                                                                                                                                                | End of Life |
 |--------|-----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|-------------|
@@ -158,16 +163,17 @@ for that series.
 The files are available at:
 
 ```
-https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.33
 https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.34
 https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.35
 https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.36
 ```
 
 Gardener variants use a parallel `last-X-gardener` file. It exists for every
-series published from the DIB pipeline, so currently for `v1.35` and `v1.36`:
+series published from the DIB pipeline, so currently for `v1.34`, `v1.35` and
+`v1.36`:
 
 ```
+https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.34-gardener
 https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.35-gardener
 https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.36-gardener
 ```
@@ -178,22 +184,22 @@ Each file contains a single line in the format:
 YYYY-MM-DD ubuntu-XXXX-kube-vX.XX/ubuntu-XXXX-kube-vX.XX.X.qcow2
 ```
 
-For example, `last-1.33` might contain:
+For example, `last-1.36` might contain:
 
 ```
-2025-11-15 ubuntu-2404-kube-v1.33/ubuntu-2404-kube-v1.33.9.qcow2
+2026-09-16 ubuntu-2404-kube-v1.36/ubuntu-2404-kube-v1.36.4.qcow2
 ```
 
 This tells you that:
-- The build was created on 2025-11-15
-- The current version is v1.33.9
+- The build was created on 2026-09-16
+- The current version is v1.36.4
 - The image uses Ubuntu 24.04
-- The full download URL is: `https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.33/ubuntu-2404-kube-v1.33.9.qcow2`
+- The full download URL is: `https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.36/ubuntu-2404-kube-v1.36.4.qcow2`
 
 To fetch the current version programmatically:
 
 ```bash
-curl -s https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.33
+curl -s https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.36
 ```
 
 ## Generating Download URLs for All Patch Versions
