@@ -126,6 +126,32 @@
       - ^\.zuul\.yaml$
 
 - job:
+    name: k8s-capi-images-build-v1.37
+    parent: abstract-k8s-capi-images-build
+    vars:
+      kubernetes_version: v1.37
+      variant: ""
+    files: &files_v1_37
+      - ^overrides/v1\.37\.json$
+      - ^elements/k8s-capi/.*
+      - ^playbooks/.*
+      - ^requirements\.txt$
+      - ^\.zuul\.yaml$
+
+- job:
+    name: k8s-capi-images-build-v1.37-gardener
+    parent: abstract-k8s-capi-images-build
+    vars:
+      kubernetes_version: v1.37
+      variant: gardener
+    files: &files_v1_37_gardener
+      - ^overrides/v1\.37-gardener\.json$
+      - ^elements/k8s-capi/.*
+      - ^playbooks/.*
+      - ^requirements\.txt$
+      - ^\.zuul\.yaml$
+
+- job:
     name: k8s-capi-images-publish-v1.34
     parent: abstract-k8s-capi-images-publish
     vars:
@@ -197,6 +223,30 @@
         secret: SECRET_K8S_CAPI_IMAGES
         pass-to-parent: true
 
+- job:
+    name: k8s-capi-images-publish-v1.37
+    parent: abstract-k8s-capi-images-publish
+    vars:
+      kubernetes_version: v1.37
+      variant: ""
+    files: *files_v1_37
+    secrets:
+      - name: secret
+        secret: SECRET_K8S_CAPI_IMAGES
+        pass-to-parent: true
+
+- job:
+    name: k8s-capi-images-publish-v1.37-gardener
+    parent: abstract-k8s-capi-images-publish
+    vars:
+      kubernetes_version: v1.37
+      variant: gardener
+    files: *files_v1_37_gardener
+    secrets:
+      - name: secret
+        secret: SECRET_K8S_CAPI_IMAGES
+        pass-to-parent: true
+
 - project:
     merge-mode: squash-merge
     default-branch: main
@@ -210,6 +260,8 @@
         - k8s-capi-images-build-v1.35-gardener
         - k8s-capi-images-build-v1.36
         - k8s-capi-images-build-v1.36-gardener
+        - k8s-capi-images-build-v1.37
+        - k8s-capi-images-build-v1.37-gardener
     post:
       jobs:
         - k8s-capi-images-publish-v1.34:
@@ -223,4 +275,8 @@
         - k8s-capi-images-publish-v1.36:
             branches: main
         - k8s-capi-images-publish-v1.36-gardener:
+            branches: main
+        - k8s-capi-images-publish-v1.37:
+            branches: main
+        - k8s-capi-images-publish-v1.37-gardener:
             branches: main
