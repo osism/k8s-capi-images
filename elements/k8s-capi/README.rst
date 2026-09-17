@@ -51,7 +51,8 @@ How it works
   ``$TMP_HOOKS_PATH/image-builder`` (visible as ``/tmp/in_target.d/image-builder``
   in the chroot): the ``ansible/`` tree and ``ansible.cfg``, the
   ``packer/config/*.json`` role inputs, the six build shims, ``wrapper.yml``,
-  and the selected override. It normalizes the config JSONs by rewriting
+  and the selected override, plus ``static/kubeadm.yml.j2`` (see `Offline image
+  pre-pull`_). It normalizes the config JSONs by rewriting
   Packer ``{{ user `x` }}`` references to Ansible ``{{ x }}`` and replacing
   JSON ``null`` with the empty string, so a direct ``ansible-playbook`` run
   behaves like Packer's variable handling.
@@ -123,6 +124,16 @@ into the offline content store. ``wrapper.yml`` therefore starts
 ``/usr/local/bin/containerd`` manually between the ``containerd`` and
 ``kubernetes`` roles, waits for its socket, lets the ``kubernetes`` role pull the
 images into the ``k8s.io`` namespace, then stops it.
+
+The role renders the kubeadm config for that pull from the template named by
+``kubeadm_template``. The template shipped at the pinned ref still declares
+``kubeadm.k8s.io/v1beta3``, which kubeadm 1.37 removed -- the pre-pull aborts
+with *your configuration file uses an old API spec*. The element therefore
+stages its own ``static/kubeadm.yml.j2`` (the same template with the API version
+raised to ``v1beta4``, understood by kubeadm 1.31 and newer) and points
+``kubeadm_template`` at it by absolute path. Upstream made the same change on
+main in commit ``db2e0f41014c``; both the template and the extra var can go once
+``DIB_K8S_IMAGE_BUILDER_REF`` moves past it.
 
 If the in-chroot ``containerd`` pre-pull proves unstable in a given build
 environment (overlayfs/cgroup constraints), the documented fallback is to pull

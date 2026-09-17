@@ -43,6 +43,11 @@ cd "${STAGE}"
 # not reproduced elsewhere: during DIB's chroot phases /tmp holds DIB's own
 # machinery (the in_target.d mount, dib-run-parts' profile dir), the leftover
 # build temp is tiny, and /tmp is cleared on boot.
+#
+# kubeadm_template replaces the kubeadm config the kubernetes role renders for
+# the offline image pre-pull: the template shipped at the pinned ref declares
+# kubeadm.k8s.io/v1beta3, which kubeadm 1.37 removed. It is passed as an
+# absolute path so it resolves outside the role's own templates/ directory.
 ansible-playbook -i 'localhost,' -c local ansible/wrapper.yml \
     -e @config/common.json \
     -e @config/containerd.json \
@@ -53,6 +58,7 @@ ansible-playbook -i 'localhost,' -c local ansible/wrapper.yml \
     -e @config/ecr_credential_provider.json \
     -e @override.json \
     -e '{"temp_files": {"files": []}}' \
+    -e kubeadm_template="${STAGE}/kubeadm.yml.j2" \
     -e packer_builder_type=openstack \
     -e packer_build_name=openstack \
     -e 'containerd_service_url=https://raw.githubusercontent.com/containerd/containerd/refs/tags/v{{ containerd_version }}/containerd.service'

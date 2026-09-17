@@ -1,0 +1,27 @@
+# Config for the build-time "kubeadm config images pull" only. image-builder's
+# kubernetes role renders it to /etc/kubeadm.yml and deletes it again right
+# after the pre-pull, so it never ships in the image.
+#
+# This is image-builder's roles/kubernetes/templates/etc/kubeadm.yml with the
+# API version raised to v1beta4. The template shipped at the pinned ref still
+# uses kubeadm.k8s.io/v1beta3, which kubeadm 1.37 removed: the pre-pull aborts
+# with "your configuration file uses an old API spec". Upstream fixed this on
+# main (commit db2e0f41014c), but no tagged release contains it yet. Drop this
+# file together with the kubeadm_template override in
+# install.d/60-run-image-builder once DIB_K8S_IMAGE_BUILDER_REF moves past that
+# commit.
+#
+# v1beta4 is understood by kubeadm 1.31 and newer and carries the same fields,
+# so it covers every series in overrides/ -- there is no need to switch the API
+# version per series.
+apiVersion: kubeadm.k8s.io/v1beta4
+kind: ClusterConfiguration
+imageRepository: {{ kubernetes_container_registry }}
+kubernetesVersion: {{ kubernetes_semver }}
+dns:
+  imageRepository: {{ kubernetes_container_registry }}/coredns
+---
+apiVersion: kubeadm.k8s.io/v1beta4
+kind: InitConfiguration
+nodeRegistration:
+  criSocket: {{ containerd_cri_socket }}

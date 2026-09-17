@@ -51,6 +51,12 @@ for f in common containerd cni kubernetes wasm-shims additional_components \
     cp -a "${_CAPI}/packer/config/${f}.json" "${STAGE}/config/${f}.json"
 done
 
+# image-builder's kubernetes role renders the template named by
+# kubeadm_template for the offline image pre-pull, and the one shipped at the
+# pinned ref still uses the kubeadm v1beta3 API that kubeadm 1.37 removed. Stage
+# our v1beta4 copy; install.d/60-run-image-builder points the role at it.
+cp -a "${_ELEM}/static/kubeadm.yml.j2" "${STAGE}/kubeadm.yml.j2"
+
 cp -a "${_ELEM}/static/shims" "${STAGE}/shims"
 chmod +x "${STAGE}/shims/"*
 cp -a "${DIB_K8S_CAPI_OVERRIDE}" "${STAGE}/override.json"
