@@ -24,8 +24,8 @@ Both inputs are environment variables (see ``environment.d/10-k8s-capi.bash``):
 ``DIB_K8S_IMAGE_BUILDER_REF``
   Immutable **commit SHA** of ``kubernetes-sigs/image-builder`` to clone and
   run -- not a tag or branch, since the cloned roles run as root on the build
-  host and ship in every node image. Defaults to the commit for tag ``v0.1.52``
-  (``3428a09fcb4293b22a01a5e32cc007a9dacad6ec``).
+  host and ship in every node image. Defaults to the commit for tag ``v0.1.55``
+  (``7ffb9b7f1f26cd66891874463cc9411e3633325f``).
 
 ``DIB_K8S_CAPI_OVERRIDE``
   Absolute path to one of the ``overrides/*.json`` files in this repository.
@@ -72,7 +72,9 @@ How it works
 ``install.d/50-install-ansible`` (in the chroot)
   Builds a throwaway virtualenv with the ``ansible-core`` version image-builder
   pins at the chosen ref and installs the ``community.general`` and
-  ``ansible.posix`` collections the roles import.
+  ``ansible.posix`` collections the roles import, plus ``python-debian`` for
+  ``ansible.builtin.deb822_repository`` (the ``apt`` family respawns itself
+  under a system interpreter to reach ``python3-apt``; that module does not).
 
 ``install.d/60-run-image-builder`` (in the chroot)
   Writes ``/usr/sbin/policy-rc.d`` (so apt does not start services; DIB removes

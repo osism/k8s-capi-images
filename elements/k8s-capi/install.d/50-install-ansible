@@ -1,6 +1,7 @@
 #!/bin/bash
 # Runs in the chroot. Builds a throwaway virtualenv with the ansible-core version
-# image-builder pins at the chosen ref and the collections its roles import.
+# image-builder pins at the chosen ref, the collections its roles import and the
+# Python libraries their modules need.
 
 if [ "${DIB_DEBUG_TRACE:-0}" -gt 0 ]; then
     set -x
@@ -25,7 +26,15 @@ if [ -z "${ANSIBLE_CORE_VERSION}" ]; then
 fi
 
 python3 -m venv "${VENV}"
-"${VENV}/bin/pip" install --no-cache-dir "ansible-core==${ANSIBLE_CORE_VERSION}"
+# python-debian backs ansible.builtin.deb822_repository, which the kubernetes
+# role uses to add the pkgs.k8s.io repo. Unlike apt, apt_repository and
+# package_facts -- which respawn themselves under a system interpreter that can
+# import python3-apt -- deb822_repository has no such fallback and simply fails
+# in this venv. Installing it here rather than as an apt package keeps it out of
+# the image: finalise.d drops the whole venv again.
+"${VENV}/bin/pip" install --no-cache-dir \
+    "ansible-core==${ANSIBLE_CORE_VERSION}" \
+    'python-debian==1.1.1'
 # Pin collections to exact versions so two builds from the same source produce
 # the same image and a yanked or tampered release cannot silently change what
 # runs as root in the chroot. Both are compatible with ansible-core 2.18.
