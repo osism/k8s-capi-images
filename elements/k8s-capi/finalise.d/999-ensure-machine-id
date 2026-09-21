@@ -1,0 +1,32 @@
+#!/bin/bash
+# Runs in the chroot at the end of DIB's finalise phase, after DIB's own
+# sysprep element (99-clear-machine-id).
+#
+# That hook only resets /etc/machine-id to "uninitialized" if the file already
+# exists. On a real Packer-built VM systemd creates it during boot, so the
+# reset always has something to act on. In this systemd-less DIB chroot no
+# systemd ever runs, so the file is never created in the first place -- the
+# hook's -e check fails, it is silently skipped, and the image would ship with
+# /etc/machine-id missing entirely.
+#
+# A missing machine-id breaks more than "first boot" bookkeeping: systemd's
+# DHCPv4 client derives its DUID-EN from it, and sd_id128_get_machine()
+# returns ENOENT when the file does not exist. That makes DHCPv4
+# configuration on the primary NIC fail permanently for the boot ("Failed to
+# set DUID-EN: No such file or directory"), so the node never gets an address
+# or default route -- kubeadm then falls back to binding the API server on
+# 0.0.0.0, which it refuses, while cloud-init itself still reports success.
+#
+# Writing "uninitialized" (rather than leaving it empty) is deliberate: it is
+# the same value DIB's own hook uses and is documented by systemd to reliably
+# trigger full first-boot machine-id generation across systemd versions.
+# https://www.freedesktop.org/software/systemd/man/machine-id.html#First%20Boot%20Semantics
+
+if [ "${DIB_DEBUG_TRACE:-0}" -gt 0 ]; then
+    set -x
+fi
+set -euo pipefail
+
+if [ ! -e /etc/machine-id ]; then
+    echo uninitialized > /etc/machine-id
+fi
