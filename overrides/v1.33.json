@@ -1,5 +1,7 @@
 {
     "kubernetes_deb_version": "1.33.13-1.1",
     "kubernetes_semver": "v1.33.13",
-    "kubernetes_series": "v1.33"
+    "kubernetes_series": "v1.33",
+    "ubuntu_release": "noble",
+    "ubuntu_version": "2404"
 }

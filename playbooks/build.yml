@@ -7,11 +7,16 @@
       ansible.builtin.set_fact:
         override_file: "overrides/{{ kubernetes_version | default('v1.33') }}.json"
 
+    # The Ubuntu base of a series is part of its override file: ubuntu_release
+    # is the codename DIB downloads the cloud image for (noble, resolute) and
+    # ubuntu_version the prefix in the image name (2404, 2604). Both are
+    # required so a series can never silently fall back to an older base.
     - name: Derive the image name components from the override file
       ansible.builtin.set_fact:
-        image_dir: "ubuntu-2404-kube-{{ override_data.kubernetes_series }}"
-        image_basename: "ubuntu-2404-kube-{{ override_data.kubernetes_semver }}"
-        series_basename: "ubuntu-2404-kube-{{ override_data.kubernetes_series }}"
+        ubuntu_release: "{{ override_data.ubuntu_release }}"
+        image_dir: "ubuntu-{{ override_data.ubuntu_version }}-kube-{{ override_data.kubernetes_series }}"
+        image_basename: "ubuntu-{{ override_data.ubuntu_version }}-kube-{{ override_data.kubernetes_semver }}"
+        series_basename: "ubuntu-{{ override_data.ubuntu_version }}-kube-{{ override_data.kubernetes_series }}"
         last_file: "last-{{ override_data.kubernetes_series | regex_replace('^v', '') }}"
       vars:
         override_data: "{{ lookup('file', playbook_dir ~ '/../' ~ override_file) | from_json }}"
@@ -19,22 +24,24 @@
     - name: Validate the derived image name components
       ansible.builtin.assert:
         that:
+          - ubuntu_release is match('^[a-z]+$')
           - image_dir is match('^[A-Za-z0-9._-]+$')
           - image_basename is match('^[A-Za-z0-9._-]+$')
           - series_basename is match('^[A-Za-z0-9._-]+$')
           - last_file is match('^[A-Za-z0-9._-]+$')
         fail_msg: >-
           Refusing to build: image name components derived from the override file
-          contain characters outside [A-Za-z0-9._-]
-          (image_dir={{ image_dir }}, image_basename={{ image_basename }},
-          series_basename={{ series_basename }}, last_file={{ last_file }}).
+          contain unexpected characters
+          (ubuntu_release={{ ubuntu_release }}, image_dir={{ image_dir }},
+          image_basename={{ image_basename }}, series_basename={{ series_basename }},
+          last_file={{ last_file }}).
 
     # Every publish run produces two images from one build:
     #
-    #   * the versioned image (ubuntu-2404-kube-v1.37.0.qcow2) is create-once:
+    #   * the versioned image (ubuntu-2604-kube-v1.37.0.qcow2) is create-once:
     #     when its CHECKSUM is already in the object storage, it is not
     #     overwritten and the last-X pointer is left untouched;
-    #   * the series image (ubuntu-2404-kube-v1.37.qcow2) is always overwritten,
+    #   * the series image (ubuntu-2604-kube-v1.37.qcow2) is always overwritten,
     #     so every merged change that triggers the job ships a fresh "latest"
     #     image of the series, even when the Kubernetes version did not change.
     #
@@ -72,7 +79,7 @@
 
           source /tmp/venv/bin/activate
           export ELEMENTS_PATH=./elements
-          export DIB_RELEASE=noble
+          export DIB_RELEASE="${UBUNTU_RELEASE}"
 
           export DIB_K8S_CAPI_OVERRIDE
           DIB_K8S_CAPI_OVERRIDE="$(readlink -f "${OVERRIDE_FILE}")"
@@ -94,6 +101,7 @@
           printf '%s %s/%s\n' "$(date +%F)" "${IMAGE_DIR}" "${FILE}" > "${LAST_FILE}"
       environment:
         OVERRIDE_FILE: "{{ override_file }}"
+        UBUNTU_RELEASE: "{{ ubuntu_release }}"
         IMAGE_DIR: "{{ image_dir }}"
         IMAGE_BASENAME: "{{ image_basename }}"
         SERIES_BASENAME: "{{ series_basename }}"
