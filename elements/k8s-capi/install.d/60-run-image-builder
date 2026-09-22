@@ -27,6 +27,54 @@ export LANG=C.UTF-8
 export ANSIBLE_CONFIG="${STAGE}/ansible.cfg"
 export PATH="${STAGE}/shims:${VENV}/bin:${PATH}"
 
+# community.general.modprobe decides whether a module is already loaded by
+# reading /proc/modules and then /lib/modules/$(uname -r)/modules.builtin, in
+# Python -- the modprobe shim never sees that lookup. Both paths are wrong in a
+# chroot: /proc belongs to the build host, while /lib/modules holds the modules
+# of the *image's* kernel. The lookup therefore only finds a modules.builtin
+# when the build host kernel happens to have the same version as the image's,
+# which is what kept it working while a Noble host built Noble images. A Noble
+# host building a Resolute image has no such directory, and the node role's
+# "Ensure overlay module is present" task dies with FileNotFoundError.
+#
+# Stage an empty modules.builtin for the running kernel so the lookup finds no
+# built-in module and the module falls through to calling modprobe, which is
+# this element's no-op shim -- exactly the path taken on a matching host. Either
+# way nothing is loaded and nothing needs to be: the module is only asked for
+# state=present (persistent defaults to "disabled"), and the image gets its
+# modules from /etc/modules-load.d/kubernetes.conf, which the same role writes
+# from a separate copy task.
+#
+# Only a missing file is stubbed, never an existing one, and the stub is removed
+# again on exit so it cannot ship in the image. That distinction matters: on a
+# matching host the directory is the image's real one, full of its real modules.
+MODULES_DIR="/lib/modules/$(uname -r)"
+MODULES_BUILTIN="${MODULES_DIR}/modules.builtin"
+STUB_FILE=""
+STUB_DIR=""
+
+remove_modules_builtin_stub() {
+    if [ -n "${STUB_FILE}" ]; then
+        rm -f "${STUB_FILE}"
+    fi
+    # Only ever removes the directory this script created, and only while it is
+    # empty, so a real /lib/modules/<version> is never touched.
+    if [ -n "${STUB_DIR}" ]; then
+        rmdir "${STUB_DIR}" 2>/dev/null || true
+    fi
+    return 0
+}
+
+if [ ! -e "${MODULES_BUILTIN}" ]; then
+    if [ ! -d "${MODULES_DIR}" ]; then
+        STUB_DIR="${MODULES_DIR}"
+    fi
+    STUB_FILE="${MODULES_BUILTIN}"
+    trap remove_modules_builtin_stub EXIT
+    mkdir -p "${MODULES_DIR}"
+    : > "${MODULES_BUILTIN}"
+fi
+
 cd "${STAGE}"
 
 # The override is loaded last so its Kubernetes/containerd/runc versions win.
