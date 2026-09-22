@@ -19,7 +19,8 @@ sha256_hash() {
 # Determine the Ubuntu version for a given minor.patch combination
 # - 1.32.x:       always 2204
 # - 1.33.0-1.33.3: 2204, starting with 1.33.4: 2404
-# - 1.34+:        always 2404
+# - 1.34-1.36:    always 2404
+# - 1.37+:        always 2604
 get_ubuntu_version() {
     local minor="$1"
     local patch="$2"
@@ -35,8 +36,11 @@ get_ubuntu_version() {
                 echo "2404"
             fi
             ;;
-        *)
+        34|35|36)
             echo "2404"
+            ;;
+        *)
+            echo "2604"
             ;;
     esac
 }

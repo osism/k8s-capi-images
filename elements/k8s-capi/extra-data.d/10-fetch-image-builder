@@ -20,6 +20,21 @@ if [ ! -f "${DIB_K8S_CAPI_OVERRIDE}" ]; then
     exit 1
 fi
 
+# The Ubuntu base belongs to the Kubernetes series, so the override names it as
+# ubuntu_release. DIB takes the base from DIB_RELEASE, which this element cannot
+# set itself: DIB's ubuntu element reads it long before any hook here runs.
+# Compare the two instead -- unset or mismatched, the build would silently fall
+# back to DIB's default (noble) and install the series' Kubernetes packages on a
+# base they were never meant for.
+OVERRIDE_RELEASE="$(python3 -c \
+    'import json,sys;print(json.load(open(sys.argv[1]))["ubuntu_release"])' \
+    "${DIB_K8S_CAPI_OVERRIDE}")"
+if [ "${DIB_RELEASE:-}" != "${OVERRIDE_RELEASE}" ]; then
+    echo "ERROR: DIB_RELEASE='${DIB_RELEASE:-}' does not match ubuntu_release='${OVERRIDE_RELEASE}'" >&2
+    echo "       from ${DIB_K8S_CAPI_OVERRIDE}; build with DIB_RELEASE=${OVERRIDE_RELEASE}." >&2
+    exit 1
+fi
+
 STAGE="${TMP_HOOKS_PATH}/image-builder"
 rm -rf "${STAGE}"
 mkdir -p "${STAGE}/config"

@@ -48,7 +48,16 @@ cd "${STAGE}"
 # the offline image pre-pull: the template shipped at the pinned ref declares
 # kubeadm.k8s.io/v1beta3, which kubeadm 1.37 removed. It is passed as an
 # absolute path so it resolves outside the role's own templates/ directory.
+#
+# ansible_python_interpreter is pinned to the venv interpreter because
+# ansible-core 2.18's interpreter discovery only probes python3.13 and older
+# before falling back to /usr/bin/python3. On Noble (python3.12) that lookup
+# happened to hit the venv's python3.12 on PATH, so python-debian was found; on
+# Resolute (python3.14) it silently lands on the system interpreter and
+# deb822_repository fails with "No module named 'debian'". The apt family still
+# respawns itself under /usr/bin/python3 to reach python3-apt.
 ansible-playbook -i 'localhost,' -c local ansible/wrapper.yml \
+    -e ansible_python_interpreter="${VENV}/bin/python3" \
     -e @config/common.json \
     -e @config/containerd.json \
     -e @config/cni.json \

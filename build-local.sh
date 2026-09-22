@@ -1,6 +1,7 @@
 #!/bin/bash
 # Build a CAPI image locally with diskimage-builder, reproducing image-builder's
-# ubuntu-2404-kube-vX.YY qcow2 via the k8s-capi element.
+# ubuntu-XXXX-kube-vX.YY qcow2 via the k8s-capi element. The Ubuntu base
+# (ubuntu_release/ubuntu_version) comes from the override file of the series.
 #
 # Usage:
 #   ./build-local.sh [VERSION]
@@ -34,11 +35,20 @@ fi
 
 export DIB_K8S_CAPI_OVERRIDE
 DIB_K8S_CAPI_OVERRIDE="$(readlink -f "${OVERRIDE}")"
-export DIB_RELEASE=noble
 export ELEMENTS_PATH=./elements
 
-SEMVER="$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['kubernetes_semver'])" "${OVERRIDE}")"
-NAME="ubuntu-2404-kube-${SEMVER}"
+# kubernetes_semver names the image, ubuntu_release (codename, e.g. resolute)
+# selects the DIB cloud image and ubuntu_version (e.g. 2604) the image prefix.
+read -r SEMVER UBUNTU_RELEASE UBUNTU_VERSION < <(python3 - "${OVERRIDE}" <<'PYEOF'
+import json
+import sys
+
+data = json.load(open(sys.argv[1]))
+print(data["kubernetes_semver"], data["ubuntu_release"], data["ubuntu_version"])
+PYEOF
+)
+export DIB_RELEASE="${UBUNTU_RELEASE}"
+NAME="ubuntu-${UBUNTU_VERSION}-kube-${SEMVER}"
 
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt

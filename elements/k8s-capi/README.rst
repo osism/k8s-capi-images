@@ -3,8 +3,10 @@ k8s-capi
 ========
 
 A diskimage-builder element that reproduces the Cluster API (CAPI)
-``ubuntu-2404-kube-vX.YY`` images locally without Packer. Instead of
-reimplementing the provisioning in Bash, it fetches
+``ubuntu-XXXX-kube-vX.YY`` images locally without Packer. The Ubuntu base is
+chosen per Kubernetes series through ``DIB_RELEASE``; 24.04 (``noble``) and
+26.04 (``resolute``) are in use. Instead of reimplementing the provisioning in
+Bash, it fetches
 `kubernetes-sigs/image-builder <https://github.com/kubernetes-sigs/image-builder>`_
 at a pinned git ref and runs image-builder's *original* Ansible roles
 (``node`` → ``setup``, ``providers``, ``containerd``, ``kubernetes``,
@@ -32,6 +34,14 @@ Both inputs are environment variables (see ``environment.d/10-k8s-capi.bash``):
   It selects the Kubernetes series. There is no default; the build fails
   loudly if it is unset or points at a missing file.
 
+``DIB_RELEASE``
+  DIB's own variable for the Ubuntu codename to build on. The element cannot
+  set it (DIB's ``ubuntu`` element reads it before any hook of this element
+  runs), but ``extra-data.d`` fails the build unless it matches the
+  ``ubuntu_release`` of the selected override. Without that check a build
+  started without ``DIB_RELEASE`` would silently fall back to DIB's default
+  (``noble``) and install the series' Kubernetes packages on the wrong base.
+
 Usage
 =====
 
@@ -39,14 +49,18 @@ The element is normally driven through ``build-local.sh`` at the repository
 root, which sets the inputs and invokes::
 
     disk-image-create -a amd64 -t qcow2 \
-        -o output/ubuntu-2404-kube-v1.33.13 \
+        -o output/ubuntu-2604-kube-v1.37.0 \
         ubuntu vm growroot openssh-server k8s-capi
+
+with ``DIB_RELEASE`` set to the Ubuntu codename of the series (``noble`` or
+``resolute``). ``build-local.sh`` reads it from the override file.
 
 How it works
 ============
 
 ``extra-data.d/10-fetch-image-builder`` (outside the chroot)
-  Clones image-builder at ``DIB_K8S_IMAGE_BUILDER_REF`` and stages, under
+  Checks ``DIB_RELEASE`` against the override's ``ubuntu_release``, then clones
+  image-builder at ``DIB_K8S_IMAGE_BUILDER_REF`` and stages, under
   ``$TMP_HOOKS_PATH/image-builder`` (visible as ``/tmp/in_target.d/image-builder``
   in the chroot): the ``ansible/`` tree and ``ansible.cfg``, the
   ``packer/config/*.json`` role inputs, the six build shims, ``wrapper.yml``,
@@ -79,7 +93,10 @@ How it works
   Writes ``/usr/sbin/policy-rc.d`` (so apt does not start services; DIB removes
   it again in its own cleanup phase), prepends the shims and the venv to
   ``PATH``, and runs ``wrapper.yml`` with the staged config JSONs and the
-  override.
+  override. ``ansible_python_interpreter`` is pinned to the venv interpreter:
+  ansible-core 2.18's discovery only probes up to ``python3.13``, so on
+  Resolute (Python 3.14) it would fall back to ``/usr/bin/python3``, where
+  ``python-debian`` is missing and ``deb822_repository`` fails.
 
 ``finalise.d/40-update-apt-for-bootloader`` (in the chroot)
   Runs ``apt-get update`` before DIB's ``bootloader`` element installs grub.
