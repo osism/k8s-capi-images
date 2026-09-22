@@ -29,9 +29,8 @@ Both inputs are environment variables (see ``environment.d/10-k8s-capi.bash``):
 
 ``DIB_K8S_CAPI_OVERRIDE``
   Absolute path to one of the ``overrides/*.json`` files in this repository.
-  It selects the Kubernetes series (and, for the ``-gardener`` variants, the
-  containerd/runc versions). There is no default; the build fails loudly if it
-  is unset or points at a missing file.
+  It selects the Kubernetes series. There is no default; the build fails
+  loudly if it is unset or points at a missing file.
 
 Usage
 =====

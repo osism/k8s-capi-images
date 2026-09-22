@@ -36,19 +36,13 @@ workflow; the published versioned image follows with the next publish run.
 | Series         | Version  | Series Image (latest build)                                                                                                                                                       | Pointer (fixed version)                                                                              | End of Life |
 |----------------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------|-------------|
 | v1.37          | v1.37.0  | [ubuntu-2404-kube-v1.37.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.37/ubuntu-2404-kube-v1.37.qcow2) ([CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.37/ubuntu-2404-kube-v1.37.qcow2.CHECKSUM))                                     | [last-1.37](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.37)                   | 2027-10-28  |
-| v1.37-gardener | v1.37.0  | [ubuntu-2404-kube-v1.37-gardener.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.37-gardener/ubuntu-2404-kube-v1.37-gardener.qcow2) ([CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.37-gardener/ubuntu-2404-kube-v1.37-gardener.qcow2.CHECKSUM)) | [last-1.37-gardener](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.37-gardener) | 2027-10-28  |
 | v1.36          | v1.36.4  | [ubuntu-2404-kube-v1.36.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.36/ubuntu-2404-kube-v1.36.qcow2) ([CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.36/ubuntu-2404-kube-v1.36.qcow2.CHECKSUM))                                     | [last-1.36](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.36)                   | 2027-06-28  |
-| v1.36-gardener | v1.36.4  | [ubuntu-2404-kube-v1.36-gardener.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.36-gardener/ubuntu-2404-kube-v1.36-gardener.qcow2) ([CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.36-gardener/ubuntu-2404-kube-v1.36-gardener.qcow2.CHECKSUM)) | [last-1.36-gardener](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.36-gardener) | 2027-06-28  |
 | v1.35          | v1.35.8  | [ubuntu-2404-kube-v1.35.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.35/ubuntu-2404-kube-v1.35.qcow2) ([CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.35/ubuntu-2404-kube-v1.35.qcow2.CHECKSUM))                                     | [last-1.35](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.35)                   | 2027-02-28  |
-| v1.35-gardener | v1.35.8  | [ubuntu-2404-kube-v1.35-gardener.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.35-gardener/ubuntu-2404-kube-v1.35-gardener.qcow2) ([CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.35-gardener/ubuntu-2404-kube-v1.35-gardener.qcow2.CHECKSUM)) | [last-1.35-gardener](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.35-gardener) | 2027-02-28  |
 | v1.34          | v1.34.11 | [ubuntu-2404-kube-v1.34.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.34/ubuntu-2404-kube-v1.34.qcow2) ([CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.34/ubuntu-2404-kube-v1.34.qcow2.CHECKSUM))                                     | [last-1.34](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.34)                   | 2026-10-27  |
-| v1.34-gardener | v1.34.11 | [ubuntu-2404-kube-v1.34-gardener.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.34-gardener/ubuntu-2404-kube-v1.34-gardener.qcow2) ([CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.34-gardener/ubuntu-2404-kube-v1.34-gardener.qcow2.CHECKSUM)) | [last-1.34-gardener](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.34-gardener) | 2026-10-27  |
 
 The versioned images live next to the series image, for example
 `ubuntu-2404-kube-v1.36/ubuntu-2404-kube-v1.36.4.qcow2` with its
-`.CHECKSUM` file. Gardener variants pin containerd to the latest 1.x release
-(Gardener does not support containerd 2.x yet) and are published under the
-parallel `…-gardener` names.
+`.CHECKSUM` file.
 
 ### Archived
 
@@ -76,10 +70,9 @@ previous Packer based pipeline, before the migration to diskimage-builder.
 
 ## Building images
 
-Each Kubernetes series and its gardener variant is described by an override
-file under `overrides/`, for example `overrides/v1.36.json` or
-`overrides/v1.36-gardener.json`. The override files are kept in sync with the
-Kubernetes package repository and the containerd/runc releases by the
+Each Kubernetes series is described by an override file under `overrides/`,
+for example `overrides/v1.36.json`. The override files are kept in sync with
+the Kubernetes package repository by the
 [Sync with upstream](.github/workflows/sync-with-upstream.yml) workflow, which
 runs `scripts/update-extra-vars.py` and opens a pull request.
 
@@ -88,12 +81,9 @@ To build an image locally on a Linux host with qemu/libguestfs:
 ```bash
 # Build the latest v1.36 image (the qcow2 lands in output/)
 ./build-local.sh v1.36
-
-# Build the gardener variant
-./build-local.sh v1.36-gardener
 ```
 
-In CI, Zuul builds every series and variant on the `check` pipeline in
+In CI, Zuul builds every series on the `check` pipeline in
 build-only mode (`upload_image: false`). On the `post` pipeline, the publish
 jobs upload the image, its `.CHECKSUM`, and the `last-X` pointer to the object
 storage. A job is triggered by changes to its override file, the element, the
@@ -109,8 +99,6 @@ Every publish run builds the image and uploads it under two names:
   playbooks or the override file ships as a fresh "latest" image of the series,
   even when the Kubernetes version stays the same.
 
-Gardener variants are published under the parallel `…-gardener` names.
-
 ## Determining Current Versions
 
 For each Kubernetes series, a `last-X` file is published to the object storage during the
@@ -124,15 +112,6 @@ https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.34
 https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.35
 https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.36
 https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.37
-```
-
-Gardener variants use a parallel `last-X-gardener` file:
-
-```
-https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.34-gardener
-https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.35-gardener
-https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.36-gardener
-https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.37-gardener
 ```
 
 Each file contains a single line in the format:

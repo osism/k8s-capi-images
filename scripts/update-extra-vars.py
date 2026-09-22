@@ -5,7 +5,6 @@
 #
 ###############################################################################
 
-import hashlib
 import json
 import os
 import re
@@ -29,30 +28,9 @@ package_index_url = "https://pkgs.k8s.io/core:/stable:/{series}/deb/Packages"
 # them share is usable.
 required_packages = ("kubeadm", "kubectl", "kubelet")
 
-# Gardener does not support containerd 2.x yet, so its override files pin
-# containerd_version to the latest 1.x release rather than image-builder's
-# default 2.x. runc has no such constraint, hence "latest" without a filter.
-containerd_releases_url = "https://api.github.com/repos/containerd/containerd/releases"
-runc_latest_release_url = (
-    "https://api.github.com/repos/opencontainers/runc/releases/latest"
-)
-containerd_service_url = (
-    "https://raw.githubusercontent.com/containerd/containerd/refs/tags/v{version}/containerd.service"
-)
-
-# Authenticating raises the GitHub API rate limit from 60 to 5000 requests per
-# hour, which matters when this script runs for every override file on a
-# shared CI runner IP.
-github_api_headers = {}
-if os.environ.get("GITHUB_TOKEN"):
-    github_api_headers["Authorization"] = f"Bearer {os.environ['GITHUB_TOKEN']}"
-
 file = sys.argv[1]
 script_dir = os.path.dirname(os.path.abspath(__file__))
 readme_path = os.path.join(script_dir, "..", "README.md")
-image_builder_install_script = os.path.join(
-    script_dir, "..", "elements", "k8s-capi", "install.d", "60-run-image-builder"
-)
 
 
 ###############################################################################
@@ -124,42 +102,6 @@ def latest_deb_version(series):
     return max(candidates, key=deb_version_key)
 
 
-def latest_containerd_v1_version():
-    """Return the newest containerd 1.x release, e.g. "1.7.34"."""
-    # per_page=100 (the API max) so a 1.x patch stays visible even once containerd
-    # has published many newer 2.x/3.x releases in the meantime.
-    request = urllib.request.Request(
-        containerd_releases_url + "?per_page=100", headers=github_api_headers
-    )
-    with urllib.request.urlopen(request, timeout=30) as response:
-        releases = json.load(response)
-
-    candidates = [
-        release["tag_name"].lstrip("v")
-        for release in releases
-        # containerd also tags unrelated components (e.g. "api/v1.11.1"), so
-        # match the full "vX.Y.Z" tag rather than just the leading digit.
-        if not release["prerelease"]
-        and not release["draft"]
-        and re.fullmatch(r"v1\.\d+\.\d+", release["tag_name"])
-    ]
-    if not candidates:
-        raise LookupError(f"{containerd_releases_url} lists no v1.x.x release")
-
-    return max(candidates, key=deb_version_key)
-
-
-def latest_runc_version():
-    """Return the newest stable runc release, e.g. "1.5.1"."""
-    request = urllib.request.Request(
-        runc_latest_release_url, headers=github_api_headers
-    )
-    with urllib.request.urlopen(request, timeout=30) as response:
-        release = json.load(response)
-
-    return release["tag_name"].lstrip("v")
-
-
 def update_version(data):
     # e.g. 1.36.2-2.1
     deb_version = latest_deb_version(data["kubernetes_series"])
@@ -167,55 +109,7 @@ def update_version(data):
     # e.g. v1.36.2
     data["kubernetes_semver"] = "v" + deb_version.split("-")[0]
 
-    # Only overrides that already pin these (currently the gardener ones) get
-    # them updated; files without the key build with image-builder's defaults.
-    if "containerd_version" in data:
-        data["containerd_version"] = latest_containerd_v1_version()
-    if "runc_version" in data:
-        data["runc_version"] = latest_runc_version()
-
     return data
-
-
-def update_containerd_checksum_allowlist(version):
-    """Keep 60-run-image-builder's containerd.service sha256 pin in sync.
-
-    That script gates the containerd unit it downloads against a fixed
-    allowlist so a tampered or moved tag cannot inject an arbitrary systemd
-    unit. Bumping containerd_version without updating the matching hash here
-    would make every build using this version fail that check.
-    """
-    if not os.path.exists(image_builder_install_script):
-        print(f"Warning: {image_builder_install_script} not found")
-        return
-
-    with open(image_builder_install_script) as fp:
-        content = fp.read()
-
-    url = containerd_service_url.format(version=version)
-    with urllib.request.urlopen(url, timeout=30) as response:
-        new_hash = hashlib.sha256(response.read()).hexdigest()
-
-    if new_hash in content:
-        return
-
-    pattern = (
-        r"    # containerd [\d.]+(?:\.x)? \(gardener overrides\)\n"
-        r"    [0-9a-f]{64}\) ;;\n"
-    )
-    replacement = f"    # containerd {version} (gardener overrides)\n    {new_hash}) ;;\n"
-
-    updated_content, count = re.subn(pattern, replacement, content)
-    if count != 1:
-        print(
-            f"Warning: could not update containerd checksum allowlist in "
-            f"{image_builder_install_script}"
-        )
-        return
-
-    with open(image_builder_install_script, "w") as fp:
-        fp.write(updated_content)
-    print(f"Updated containerd checksum allowlist: {version} -> {new_hash}")
 
 
 def dump_file(file, data):
@@ -243,11 +137,10 @@ def update_readme(series, new_version):
         print("Warning: no 'Version' table found in README.md")
         return
 
-    # Pattern to match the table rows for this series and its variants
+    # Pattern to match the table row for this series
     # Matches: | v1.36          | v1.36.4  | [ubuntu-...
-    #          | v1.36-gardener | v1.36.4  | [ubuntu-...
     # Captures the version and trailing spaces together to calculate total width
-    pattern = rf"(\| {re.escape(series)}(?:-[a-z]+)?\s+\| )(v[\d.]+\s+)(\|)"
+    pattern = rf"(\| {re.escape(series)}\s+\| )(v[\d.]+\s+)(\|)"
 
     def replace_version(match):
         prefix = match.group(1)
@@ -289,10 +182,3 @@ dump_file(file, updated_data)
 update_readme(
     updated_data.get("kubernetes_series"), updated_data.get("kubernetes_semver")
 )
-
-if "containerd_version" in updated_data:
-    try:
-        update_containerd_checksum_allowlist(updated_data["containerd_version"])
-    except (urllib.error.URLError, TimeoutError) as err:
-        print(f"Error: could not update containerd checksum allowlist: {err}")
-        sys.exit(1)
