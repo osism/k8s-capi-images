@@ -233,21 +233,21 @@ def update_readme(series, new_version):
     with open(readme_path, "r") as f:
         content = f.read()
 
-    # This script maintains the versions that get built, so it may only rewrite
-    # the "Target Version" table. The README carries a second table listing the
-    # versions the old Packer pipeline actually published; rewriting that one
-    # would advertise images that do not exist.
+    # Only the "Kubernetes versions" table under the "| Series | Version |"
+    # header is rewritten; the "Archived" table below it lists EOL series that
+    # are never touched again.
     table = re.search(
-        r"\| Series \| Target Version \|.*?(?=\n\n|\Z)", content, re.DOTALL
+        r"\| Series\s+\| Version\s+\|.*?(?=\n\n|\Z)", content, re.DOTALL
     )
     if not table:
-        print("Warning: no 'Target Version' table found in README.md")
+        print("Warning: no 'Version' table found in README.md")
         return
 
-    # Pattern to match the table row for this series
-    # Matches: | v1.32  | v1.32.8         | [ubuntu-...
+    # Pattern to match the table rows for this series and its variants
+    # Matches: | v1.36          | v1.36.4  | [ubuntu-...
+    #          | v1.36-gardener | v1.36.4  | [ubuntu-...
     # Captures the version and trailing spaces together to calculate total width
-    pattern = rf"(\| {re.escape(series)}\s+\| )(v[\d.]+\s+)(\|)"
+    pattern = rf"(\| {re.escape(series)}(?:-[a-z]+)?\s+\| )(v[\d.]+\s+)(\|)"
 
     def replace_version(match):
         prefix = match.group(1)
