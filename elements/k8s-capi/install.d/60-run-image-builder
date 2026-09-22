@@ -71,8 +71,6 @@ ansible-playbook -i 'localhost,' -c local ansible/wrapper.yml \
 unit=/etc/systemd/system/containerd.service
 actual="$(sha256sum "${unit}" | awk '{print $1}')"
 case "${actual}" in
-    # containerd 1.7.x (gardener overrides)
-    68dc82b2e67ecb77c8ae7f49ce9681380e80977a1f261a8653e535932cf6400d) ;;
     # containerd 2.2.2 and 2.3.2 (image-builder default) -- upstream ships a
     # byte-identical unit for both, so one entry covers them
     1941362cbaa89dd591b99c32b050d82c583d3cd2e5fa63085d7017457ec5fca8) ;;

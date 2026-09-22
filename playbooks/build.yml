@@ -5,15 +5,14 @@
   tasks:
     - name: Resolve the override file for this build
       ansible.builtin.set_fact:
-        suffix: "{{ ('-' + variant) if variant | default('') else '' }}"
-        override_file: "overrides/{{ kubernetes_version | default('v1.33') }}{{ ('-' + variant) if variant | default('') else '' }}.json"
+        override_file: "overrides/{{ kubernetes_version | default('v1.33') }}.json"
 
     - name: Derive the image name components from the override file
       ansible.builtin.set_fact:
-        image_dir: "ubuntu-2404-kube-{{ override_data.kubernetes_series }}{{ suffix }}"
-        image_basename: "ubuntu-2404-kube-{{ override_data.kubernetes_semver }}{{ suffix }}"
-        series_basename: "ubuntu-2404-kube-{{ override_data.kubernetes_series }}{{ suffix }}"
-        last_file: "last-{{ override_data.kubernetes_series | regex_replace('^v', '') }}{{ suffix }}"
+        image_dir: "ubuntu-2404-kube-{{ override_data.kubernetes_series }}"
+        image_basename: "ubuntu-2404-kube-{{ override_data.kubernetes_semver }}"
+        series_basename: "ubuntu-2404-kube-{{ override_data.kubernetes_series }}"
+        last_file: "last-{{ override_data.kubernetes_series | regex_replace('^v', '') }}"
       vars:
         override_data: "{{ lookup('file', playbook_dir ~ '/../' ~ override_file) | from_json }}"
 

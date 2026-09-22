@@ -7,7 +7,7 @@
 #
 # VERSION is the basename of an overrides/<VERSION>.json file, e.g.:
 #   ./build-local.sh v1.33
-#   ./build-local.sh v1.36-gardener
+#   ./build-local.sh v1.36
 #
 # Environment:
 #   DIB_K8S_IMAGE_BUILDER_REF  image-builder commit SHA to run (default: the
@@ -39,9 +39,6 @@ export ELEMENTS_PATH=./elements
 
 SEMVER="$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['kubernetes_semver'])" "${OVERRIDE}")"
 NAME="ubuntu-2404-kube-${SEMVER}"
-case "${VERSION}" in
-    *-gardener) NAME="${NAME}-gardener" ;;
-esac
 
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
