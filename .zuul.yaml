@@ -44,9 +44,11 @@
       upload_image: true
 
 # Every files matcher below includes .zuul.yaml, so changing the pipeline
-# itself (e.g. arming a publish job) triggers the builds and publishes. The
-# CHECKSUM pre-check in playbooks/build.yml keeps the publish jobs idempotent:
-# an already-published image is not rebuilt or overwritten.
+# itself (e.g. arming a publish job) triggers the builds and publishes. Each
+# publish run always rebuilds and overwrites the unversioned series image
+# (ubuntu-2404-kube-vX.YY.qcow2); the CHECKSUM pre-check in playbooks/build.yml
+# only keeps the versioned image (ubuntu-2404-kube-vX.YY.Z.qcow2) and the
+# last-X pointer create-once.
 - job:
     name: k8s-capi-images-build-v1.34
     parent: abstract-k8s-capi-images-build

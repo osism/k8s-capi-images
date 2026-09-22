@@ -27,13 +27,15 @@ contains, for example, version `1.27.3`.
 > still being wired up
 > ([#338](https://github.com/osism/k8s-capi-images/issues/338)).
 >
-> DIB images are always published under their full patch version
-> (`ubuntu-2404-kube-v1.36.2.qcow2`). The old pipeline additionally maintained an
-> unversioned `ubuntu-2404-kube-v1.36.qcow2` pointing at the latest build of the
-> series; the DIB pipeline does **not** write that file. Consumers of a series
-> should resolve the current image through the `last-X` file (see
-> [Determining Current Versions](#determining-current-versions)) rather than
-> through the unversioned name.
+> DIB images are published twice from every build: under their full patch
+> version (`ubuntu-2404-kube-v1.36.2.qcow2`), which is written once and never
+> overwritten, and under the unversioned series name
+> (`ubuntu-2404-kube-v1.36.qcow2`), which is overwritten on every publish run
+> and therefore always contains the latest build of the series, including
+> fixes to the image itself that do not bump the Kubernetes version. Consumers
+> that want a fixed version should resolve it through the `last-X` file (see
+> [Determining Current Versions](#determining-current-versions)); consumers
+> that want "latest" use the unversioned series name.
 
 ## New world: diskimage-builder (DIB)
 
@@ -66,19 +68,25 @@ storage. These jobs are armed for every series and variant in `overrides/` that
 has build jobs, currently `v1.34` through `v1.37` in both the default and the
 gardener variant.
 
-Publishing is create-once per image version: a publish job checks whether the
-`.CHECKSUM` of the image it would upload already exists in the object storage and
-then skips build and upload. This keeps the `.zuul.yaml` file matchers idempotent
-— touching the pipeline config re-triggers the jobs without rebuilding or
-overwriting images that are already published. Gardener variants are published
-under the parallel `…-gardener` names.
+Every publish run builds the image and uploads it under two names:
+
+- `ubuntu-2404-kube-vX.YY.Z.qcow2` (versioned) is create-once: the job checks
+  whether its `.CHECKSUM` already exists in the object storage and, if so,
+  neither overwrites the image nor rewrites the `last-X` pointer.
+- `ubuntu-2404-kube-vX.YY.qcow2` (series) is always overwritten together with
+  its `.CHECKSUM`, so every merged change that touches the element, the
+  playbooks or the override file ships as a fresh "latest" image of the series,
+  even when the Kubernetes version stays the same.
+
+Gardener variants are published under the parallel `…-gardener` names.
 
 ### Kubernetes versions (new world / DIB)
 
 > [!NOTE]
 > All series below are built by the DIB pipeline. `v1.34`, `v1.35` and `v1.36`
 > are published from it; `v1.37` is armed but has not had a `post` run yet. The
-> unversioned Packer images listed further down are frozen and no longer updated.
+> unversioned series names listed further down still serve the last Packer
+> build until the DIB pipeline overwrites them on its next publish run.
 
 #### Published from the DIB pipeline
 
@@ -110,18 +118,20 @@ and
 
 The previous pipeline built the images with Packer and the upstream
 `kubernetes-sigs/image-builder` project. Every image published at the URLs below
-was built with it. All of those series are published from the DIB pipeline now,
-so the unversioned files stay available but are frozen at their last Packer
-build.
+was built with it. All of those series are published from the DIB pipeline now.
+The unversioned series names below are reused by the DIB pipeline as its rolling
+"latest" image, so they serve the last Packer build only until the next DIB
+publish run of the series overwrites them.
 
 ### Kubernetes versions (old world / Packer) — currently published
 
 > [!WARNING]
-> The images below are frozen Packer artifacts containing **v1.34.8**,
-> **v1.35.5** and **v1.36.1** and are no longer updated. The unversioned
-> `ubuntu-2404-kube-v1.34.qcow2`, `ubuntu-2404-kube-v1.35.qcow2` and
-> `ubuntu-2404-kube-v1.36.qcow2` files are not written by the DIB pipeline, so
-> they keep serving those old builds. For these series, use the
+> The images below were last built by Packer with **v1.34.8**, **v1.35.5** and
+> **v1.36.1**. The unversioned `ubuntu-2404-kube-v1.34.qcow2`,
+> `ubuntu-2404-kube-v1.35.qcow2` and `ubuntu-2404-kube-v1.36.qcow2` names are
+> now overwritten by the DIB pipeline on its next publish run of each series,
+> after which they serve the latest DIB build. Until then they still serve the
+> old Packer builds. For these series, use the
 > [DIB images above](#published-from-the-dib-pipeline).
 
 | Series | Current Version | Image URL                                                                                                                                                | End of Life |
@@ -200,6 +210,15 @@ To fetch the current version programmatically:
 
 ```bash
 curl -s https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.36
+```
+
+If you do not need a fixed patch version, the unversioned series image always
+contains the latest published build of that series (see the note in
+[Building images](#building-images)):
+
+```
+https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.36/ubuntu-2404-kube-v1.36.qcow2
+https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.36/ubuntu-2404-kube-v1.36.qcow2.CHECKSUM
 ```
 
 ## Generating Download URLs for All Patch Versions
