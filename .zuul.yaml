@@ -31,7 +31,15 @@
     parent: base
     nodeset: ubuntu-noble-large
     pre-run: playbooks/pre.yml
-    run: playbooks/build.yml
+    # NOTE: the upload tasks still live at the tail of playbooks/build.yml,
+    # which runs BEFORE playbooks/validate.yml, so a publish run uploads the
+    # image before goss validates it. To let validation gate publishing, move
+    # the upload tasks into a playbooks/publish.yml appended AFTER
+    # playbooks/validate.yml here; a failed validation then fails the job
+    # before any upload runs.
+    run:
+      - playbooks/build.yml
+      - playbooks/validate.yml
     timeout: 7200
     vars:
       upload_image: false
