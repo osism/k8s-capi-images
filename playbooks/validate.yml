@@ -11,7 +11,8 @@
 # is sealed (no SSH host keys, no machine-id, no cloud-init instance state).
 # Upstream runs goss in the Packer build VM right after sysprep, where that
 # holds; the validation boot here recreates all of it through cloud-init before
-# goss can run. The VM therefore runs every gossfile except that one.
+# goss can run. That file is therefore checked offline, in a chroot of the
+# unbooted artifact mounted read-only, and the VM runs the remaining gossfiles.
 #
 # The goss spec is not vendored: it is re-cloned from kubernetes-sigs/image-
 # builder at the same SHA-pinned ref the element uses (read from
@@ -67,6 +68,7 @@
       ansible.builtin.set_fact:
         image_path: "{{ project_dir }}/output/{{ image_basename }}.qcow2"
         run_dir: "{{ ansible_user_dir }}/goss-validate-{{ image_basename }}"
+        hygiene_dir: "{{ ansible_user_dir }}/goss-validate-{{ image_basename }}/hygiene"
 
     - name: Read the pinned image-builder ref from the element environment
       ansible.builtin.slurp:
@@ -108,8 +110,8 @@
           cp -a "{{ run_dir }}/image-builder/images/capi/packer/goss" "{{ run_dir }}/goss"
       changed_when: true
 
-    # Split upstream's entrypoint: the booted VM runs every gossfile except
-    # goss-image-hygiene.yaml (see the header).
+    # Split upstream's entrypoint: goss-image-hygiene.yaml runs offline against
+    # the unbooted artifact (see the header), every other gossfile in the VM.
     - name: Read the upstream goss entrypoint
       ansible.builtin.slurp:
         src: "{{ run_dir }}/goss/goss.yaml"
@@ -125,8 +127,8 @@
           - "'goss-image-hygiene.yaml' in goss_gossfiles"
         fail_msg: >-
           Upstream goss.yaml at {{ image_builder_ref }} no longer lists
-          goss-image-hygiene.yaml; review which gossfiles the booted VM runs
-          before bumping the ref.
+          goss-image-hygiene.yaml; review how the spec is split between the
+          offline hygiene check and the booted VM before bumping the ref.
 
     - name: Write the goss entrypoint for the booted VM
       ansible.builtin.copy:
@@ -155,6 +157,115 @@
         dest: "{{ run_dir }}/goss-bin"
         checksum: "sha256:{{ goss_sha256 }}"
         mode: "0755"
+
+    # The chroot executes the image's own sh/find/grep as root on the build
+    # host. The DIB build already ran this userland as root in a chroot on the
+    # same ephemeral node, so this adds no new exposure.
+    - name: Check image hygiene on the unbooted artifact
+      block:
+        - name: Create the hygiene bundle and mount point
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: directory
+            mode: "0755"
+          loop:
+            - "{{ hygiene_dir }}/bundle"
+            - "{{ hygiene_dir }}/root"
+
+        - name: Stage goss and the image-hygiene spec for the chroot
+          ansible.builtin.copy:
+            src: "{{ item }}"
+            dest: "{{ hygiene_dir }}/bundle/"
+            remote_src: true
+            mode: preserve
+          loop:
+            - "{{ run_dir }}/goss-bin"
+            - "{{ run_dir }}/goss/goss-image-hygiene.yaml"
+            - "{{ run_dir }}/goss/goss-vars.yaml"
+
+        # The loop driver mounts raw images only; the published qcow2 is just read.
+        - name: Convert the artifact to a disposable raw copy
+          ansible.builtin.command:
+            cmd: qemu-img convert -f qcow2 -O raw {{ image_path }} {{ hygiene_dir }}/image.raw
+          changed_when: true
+
+        # The root partition is found by DIB's root label rather than its
+        # index. ro,noload never replays the journal, so nothing is written.
+        # /dev is bound for the checks' 2>/dev/null redirects, and the bundle is
+        # bound read-only onto the image's empty /mnt.
+        - name: Mount the unbooted root filesystem read-only
+          ansible.builtin.shell:
+            executable: /bin/bash
+            cmd: |
+              set -euo pipefail
+              raw="{{ hygiene_dir }}/image.raw"
+              root="{{ hygiene_dir }}/root"
+              offset=""
+              while read -r start; do
+                  label="$(blkid -p -O "$(( start * 512 ))" -s LABEL -o value "${raw}" || true)"
+                  if [ "${label}" = "cloudimg-rootfs" ]; then
+                      offset="$(( start * 512 ))"
+                  fi
+              done < <(partx --show --noheadings --output START "${raw}")
+              if [ -z "${offset}" ]; then
+                  echo "no cloudimg-rootfs partition found in ${raw}" >&2
+                  exit 1
+              fi
+              mount -o ro,noload,loop,offset="${offset}" "${raw}" "${root}"
+              mount --bind -o ro "{{ hygiene_dir }}/bundle" "${root}/mnt"
+              mount --bind /dev "${root}/dev"
+              mount -t proc proc "${root}/proc"
+          become: true
+          changed_when: true
+
+        - name: Run the image-hygiene checks in the unbooted root
+          ansible.builtin.shell:
+            executable: /bin/bash
+            cmd: >-
+              chroot {{ hygiene_dir }}/root /mnt/goss-bin
+              -g /mnt/goss-image-hygiene.yaml --vars /mnt/goss-vars.yaml
+              --vars-inline "$(cat {{ run_dir }}/vars-inline.json)"
+              validate -f json -o pretty
+          become: true
+          register: hygiene_result
+          failed_when: false
+          changed_when: false
+
+        - name: Capture the image-hygiene goss JSON report
+          ansible.builtin.copy:
+            dest: "{{ ansible_user_dir }}/zuul-output/logs/goss-hygiene-{{ image_basename }}.json"
+            content: "{{ hygiene_result.stdout }}\n"
+            mode: "0644"
+
+        - name: Record the image-hygiene outcome
+          ansible.builtin.set_fact:
+            goss_hygiene_ok: "{{ hygiene_result.rc == 0 }}"
+
+      rescue:
+        - name: Record that the image-hygiene check failed
+          ansible.builtin.set_fact:
+            goss_hygiene_ok: false
+
+      always:
+        # Not best effort: the run directory is deleted later, and that must
+        # never descend into a still-mounted image or the bound host /dev.
+        - name: Unmount the unbooted root filesystem
+          ansible.builtin.shell:
+            executable: /bin/bash
+            cmd: |
+              set -euo pipefail
+              root="{{ hygiene_dir }}/root"
+              if mountpoint -q "${root}"; then
+                  umount --recursive "${root}"
+              fi
+          become: true
+          changed_when: true
+
+        - name: Remove the raw copy and the hygiene bundle
+          ansible.builtin.file:
+            path: "{{ hygiene_dir }}"
+            state: absent
+          failed_when: false
 
     - name: Boot the image and run goss validation
       block:
@@ -343,9 +454,10 @@
     - name: Fail the build if goss validation did not pass
       ansible.builtin.assert:
         that:
+          - goss_hygiene_ok | default(false) | bool
           - goss_validation_ok | default(false) | bool
         fail_msg: >-
           goss validation failed for {{ image_basename }}; see
-          zuul-output/logs/goss-{{ image_basename }}.json and
-          console-{{ image_basename }}.log.
+          zuul-output/logs/goss-hygiene-{{ image_basename }}.json,
+          goss-{{ image_basename }}.json and console-{{ image_basename }}.log.
         success_msg: "goss validation passed for {{ image_basename }}."
