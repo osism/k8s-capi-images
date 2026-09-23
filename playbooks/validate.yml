@@ -7,6 +7,12 @@
 # overlay whose backing file is the built qcow2 (Variant B); all guest writes
 # land in the overlay, which is deleted afterwards.
 #
+# Upstream's goss-image-hygiene.yaml is the exception: it asserts the artifact
+# is sealed (no SSH host keys, no machine-id, no cloud-init instance state).
+# Upstream runs goss in the Packer build VM right after sysprep, where that
+# holds; the validation boot here recreates all of it through cloud-init before
+# goss can run. The VM therefore runs every gossfile except that one.
+#
 # The goss spec is not vendored: it is re-cloned from kubernetes-sigs/image-
 # builder at the same SHA-pinned ref the element uses (read from
 # environment.d/10-k8s-capi.bash), honoring the existing supply-chain model and
@@ -101,6 +107,32 @@
               checkout "{{ image_builder_ref }}"
           cp -a "{{ run_dir }}/image-builder/images/capi/packer/goss" "{{ run_dir }}/goss"
       changed_when: true
+
+    # Split upstream's entrypoint: the booted VM runs every gossfile except
+    # goss-image-hygiene.yaml (see the header).
+    - name: Read the upstream goss entrypoint
+      ansible.builtin.slurp:
+        src: "{{ run_dir }}/goss/goss.yaml"
+      register: goss_entrypoint
+
+    - name: Parse the upstream gossfile list
+      ansible.builtin.set_fact:
+        goss_gossfiles: "{{ (goss_entrypoint.content | b64decode | from_yaml).gossfile }}"
+
+    - name: Fail loudly if the image-hygiene gossfile is missing
+      ansible.builtin.assert:
+        that:
+          - "'goss-image-hygiene.yaml' in goss_gossfiles"
+        fail_msg: >-
+          Upstream goss.yaml at {{ image_builder_ref }} no longer lists
+          goss-image-hygiene.yaml; review which gossfiles the booted VM runs
+          before bumping the ref.
+
+    - name: Write the goss entrypoint for the booted VM
+      ansible.builtin.copy:
+        dest: "{{ run_dir }}/goss/goss-runtime.yaml"
+        content: "{{ {'gossfile': goss_gossfiles | dict2items | rejectattr('key', 'equalto', 'goss-image-hygiene.yaml') | items2dict} | to_nice_yaml }}"
+        mode: "0644"
 
     - name: Render the goss --vars-inline mapping from the override
       ansible.builtin.command:
@@ -233,7 +265,7 @@
               #!/bin/bash
               set -euo pipefail
               sudo install -m 0755 goss-bin /usr/local/bin/goss
-              sudo goss -g goss/goss.yaml --vars goss/goss-vars.yaml \
+              sudo goss -g goss/goss-runtime.yaml --vars goss/goss-vars.yaml \
                   --vars-inline "$(cat vars-inline.json)" \
                   validate --retry-timeout 180s --sleep 2s -f json -o pretty
 
