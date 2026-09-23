@@ -140,6 +140,14 @@ the artifact was untouched.
 qemu-img create -f qcow2 -b output/<image>.qcow2 -F qcow2 validate-overlay.qcow2
 ```
 
+Upstream's `goss-image-hygiene.yaml` is checked separately, before the boot. It
+asserts that the artifact is sealed: no SSH host keys, no machine-id, and no
+cloud-init instance state. Upstream runs it in the Packer build VM right after
+sysprep. The validation boot here recreates all three through cloud-init and
+systemd before goss can run, so that file runs offline instead: a raw copy of
+the unbooted image is loop-mounted read-only and goss runs in a chroot of it.
+The VM runs every other gossfile of upstream's `goss.yaml`.
+
 The image boots under QEMU with KVM acceleration where the node exposes
 `/dev/kvm` (the build host widens its permissions in `playbooks/pre.yml`),
 falling back to TCG software emulation otherwise. The goss spec is re-cloned from
@@ -150,8 +158,9 @@ matching how the build already pins and hashes its inputs.
 A failed assertion fails the job, so a change whose image diverges from what
 upstream Image Builder produces fails its `check` jobs. In publish runs the
 upload tasks at the tail of `playbooks/build.yml` still run before validation,
-so validation does not yet gate the upload itself. The goss JSON report and the
-VM console log are saved under `zuul-output/logs/`.
+so validation does not yet gate the upload itself. The goss JSON reports (the
+offline hygiene check and the in-VM run) and the VM console log are saved under
+`zuul-output/logs/`.
 
 ## Determining Current Versions
 
