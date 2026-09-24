@@ -1,6 +1,6 @@
 {
-    "kubernetes_deb_version": "1.35.8-1.1",
-    "kubernetes_semver": "v1.35.8",
+    "kubernetes_deb_version": "1.35.9-1.1",
+    "kubernetes_semver": "v1.35.9",
     "kubernetes_series": "v1.35",
     "ubuntu_release": "noble",
     "ubuntu_version": "2404"
