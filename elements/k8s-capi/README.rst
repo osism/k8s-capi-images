@@ -162,3 +162,17 @@ If the in-chroot ``containerd`` pre-pull proves unstable in a given build
 environment (overlayfs/cgroup constraints), the documented fallback is to pull
 the images on first boot via a ``systemd`` oneshot instead. That fallback is not
 implemented here; the in-chroot pre-pull is the default.
+
+Reverse path filtering on Resolute
+==================================
+
+The ``node`` role sets ``net.ipv4.conf.all.rp_filter`` to ``1`` without passing
+its own ``sysctl_conf_file``, so the value lands in ``/etc/sysctl.conf``.
+systemd 259 on Ubuntu 26.04 no longer reads that file, and the image boots with
+the ``2`` that procps ships in ``/usr/lib/sysctl.d/55-network-security.conf``.
+Upstream's goss spec expects ``1`` and catches this once the image is booted
+(see "Validating images" in the repository ``README.md``). ``wrapper.yml``
+therefore writes the same value to ``/etc/sysctl.d/99-sysctl.conf`` on Ubuntu
+26.04 and newer, the file ``sysctl_conf_file`` names there. The task can go once
+the role's ``rp_filter`` task passes ``sysctl_file: "{{ sysctl_conf_file }}"``
+and ``DIB_K8S_IMAGE_BUILDER_REF`` moves past that change.
