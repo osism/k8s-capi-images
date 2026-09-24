@@ -5,9 +5,11 @@
 # -- node (which pulls in setup) -> providers -> containerd -> kubernetes ->
 # sysprep -- so the roles are reused unchanged rather than reimplemented.
 #
-# The only difference from node.yml is the manual containerd start/stop bracket
-# around the kubernetes role: the chroot has no running systemd, so containerd is
-# launched by hand for the kubeadm offline image pre-pull and stopped afterwards.
+# It differs from node.yml in two places. First, the manual containerd start/stop
+# bracket around the kubernetes role: the chroot has no running systemd, so
+# containerd is launched by hand for the kubeadm offline image pre-pull and
+# stopped afterwards. Second, a repeat of the node role's rp_filter write on
+# Ubuntu >= 26, where the role's own write lands in a file systemd no longer reads.
 # node.yml's optional, gated-off includes (custom roles, load_additional_components,
 # ecr_credential_provider) are dropped because their variables are not loaded.
 ---
@@ -23,6 +25,23 @@
     - name: Include node role
       ansible.builtin.include_role:
         name: node
+    # The node role persists net.ipv4.conf.all.rp_filter=1 without passing its
+    # own sysctl_conf_file, so the value lands in /etc/sysctl.conf. systemd 259
+    # on Ubuntu 26.04 no longer reads that file, and the image boots with the
+    # rp_filter=2 from procps' /usr/lib/sysctl.d/55-network-security.conf.
+    # Write the value where sysctl_conf_file points on Ubuntu >= 26. Nothing is
+    # applied live: in the chroot /proc/sys is the build host's.
+    - name: Persist strict reverse packet filtering where systemd reads it
+      ansible.posix.sysctl:
+        name: net.ipv4.conf.all.rp_filter
+        value: "1"
+        state: present
+        sysctl_file: /etc/sysctl.d/99-sysctl.conf
+        sysctl_set: false
+        reload: false
+      when:
+        - ansible_facts['distribution'] == "Ubuntu"
+        - ansible_facts['distribution_major_version'] | int >= 26
     - name: Include providers role
       ansible.builtin.include_role:
         name: providers
