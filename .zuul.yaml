@@ -54,9 +54,9 @@
 # Every files matcher below includes .zuul.yaml, so changing the pipeline
 # itself (e.g. arming a publish job) triggers the builds and publishes. Each
 # publish run always rebuilds and overwrites the unversioned series image
-# (ubuntu-XXXX-kube-vX.YY.qcow2); the CHECKSUM pre-check in playbooks/build.yml
-# only keeps the versioned image (ubuntu-XXXX-kube-vX.YY.Z.qcow2) and the
-# last-X pointer create-once.
+# (<os>-XXXX-kube-vX.YY.qcow2); the CHECKSUM pre-check in playbooks/build.yml
+# only keeps the versioned image (<os>-XXXX-kube-vX.YY.Z.qcow2) and the
+# last-X pointers create-once.
 - job:
     name: k8s-capi-images-build-v1.34
     parent: abstract-k8s-capi-images-build
@@ -109,6 +109,24 @@
       - ^requirements\.txt$
       - ^\.zuul\.yaml$
 
+# From v1.37 on, every series also gets a Debian image. YAML anchors cannot be
+# extended, so its matcher repeats the v1.37 entries and adds the Debian goss
+# section.
+- job:
+    name: k8s-capi-images-build-v1.37-debian
+    parent: abstract-k8s-capi-images-build
+    vars:
+      kubernetes_version: v1.37
+      image_os: debian
+    files: &files_v1_37_debian
+      - ^overrides/v1\.37\.json$
+      - ^elements/k8s-capi/.*
+      - ^playbooks/.*
+      - ^scripts/render-goss-vars\.py$
+      - ^scripts/goss-vars-debian\.json$
+      - ^requirements\.txt$
+      - ^\.zuul\.yaml$
+
 - job:
     name: k8s-capi-images-publish-v1.34
     parent: abstract-k8s-capi-images-publish
@@ -153,6 +171,18 @@
         secret: SECRET_K8S_CAPI_IMAGES
         pass-to-parent: true
 
+- job:
+    name: k8s-capi-images-publish-v1.37-debian
+    parent: abstract-k8s-capi-images-publish
+    vars:
+      kubernetes_version: v1.37
+      image_os: debian
+    files: *files_v1_37_debian
+    secrets:
+      - name: secret
+        secret: SECRET_K8S_CAPI_IMAGES
+        pass-to-parent: true
+
 - project:
     merge-mode: squash-merge
     default-branch: main
@@ -164,6 +194,7 @@
         - k8s-capi-images-build-v1.35
         - k8s-capi-images-build-v1.36
         - k8s-capi-images-build-v1.37
+        - k8s-capi-images-build-v1.37-debian
     post:
       jobs:
         - k8s-capi-images-publish-v1.34:
@@ -173,4 +204,6 @@
         - k8s-capi-images-publish-v1.36:
             branches: main
         - k8s-capi-images-publish-v1.37:
+            branches: main
+        - k8s-capi-images-publish-v1.37-debian:
             branches: main
