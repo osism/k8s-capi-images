@@ -66,6 +66,7 @@
       - ^overrides/v1\.34\.json$
       - ^elements/k8s-capi/.*
       - ^playbooks/.*
+      - ^scripts/render-goss-vars\.py$
       - ^requirements\.txt$
       - ^\.zuul\.yaml$
 
@@ -78,6 +79,7 @@
       - ^overrides/v1\.35\.json$
       - ^elements/k8s-capi/.*
       - ^playbooks/.*
+      - ^scripts/render-goss-vars\.py$
       - ^requirements\.txt$
       - ^\.zuul\.yaml$
 
@@ -90,6 +92,7 @@
       - ^overrides/v1\.36\.json$
       - ^elements/k8s-capi/.*
       - ^playbooks/.*
+      - ^scripts/render-goss-vars\.py$
       - ^requirements\.txt$
       - ^\.zuul\.yaml$
 
@@ -102,6 +105,7 @@
       - ^overrides/v1\.37\.json$
       - ^elements/k8s-capi/.*
       - ^playbooks/.*
+      - ^scripts/render-goss-vars\.py$
       - ^requirements\.txt$
       - ^\.zuul\.yaml$
 
