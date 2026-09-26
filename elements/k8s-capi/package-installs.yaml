@@ -10,3 +10,12 @@ python3:
 python3-apt:
 python3-pip:
 python3-venv:
+# DIB's debian element installs netplan.io only for DIB_RELEASE bookworm,
+# stable or testing, and DIB disables apt recommends, so a trixie build ships
+# neither netplan.io nor ifupdown, and systemd-networkd is disabled.
+# With netplan.io, cloud-init renders netplan and systemd-networkd brings up
+# the interfaces, the stack of the Ubuntu image that the providers role's
+# networkd-dispatcher hooks are written for. Drop this entry once DIB's
+# debian/install.d/10-cloud-opinions installs netplan.io for trixie.
+netplan.io:
+  when: DISTRO_NAME = debian
