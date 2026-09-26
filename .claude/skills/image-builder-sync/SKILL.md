@@ -23,7 +23,10 @@ have to be kept in step by hand:
 | `ansible/roles/kubernetes/templates/etc/kubeadm.yml` | `static/kubeadm.yml.j2` (v1beta4 workaround) |
 | containerd version in `packer/config/containerd.json` | sha256 allowlist of `containerd.service` in `install.d/60` |
 | `packer/config/kubernetes-version-matrix.yaml` | `overrides/*.json` plus config defaults |
-| `packer/goss/` | not used yet (osism/k8s-capi-images#338) |
+| `packer/goss/` | cloned at the pin by `playbooks/validate.yml`; `goss-vars.yaml` `common_debs` and the `ubuntu.qemu` section are mirrored for Debian in `scripts/goss-vars-debian.json` |
+| `ansible/roles/node/defaults/main.yml` `common_virt_debs`, `sysctl_conf_file` | Debian extra vars in `install.d/60` |
+| `ansible/roles/providers/tasks/openstack.yml` package list | the Debian `include_role` `packages` param in `static/wrapper.yml`; no other providers task on the openstack path may read `packages` |
+| `ansible/roles/node/tasks/main.yml` rp_filter task | the `static/wrapper.yml` rp_filter task (Ubuntu >= 26 and Debian) |
 
 ## 1. Run the comparison
 
@@ -66,7 +69,8 @@ report's header to read every change behind an ACTION or REVIEW finding. Use
 Read the diff of every file the report marks as **Ubuntu/OpenStack path**.
 Before you set aside a file marked "other platform", check its `when:` or the
 include that pulls it in. The filename heuristic is only a hint. The element
-runs with `packer_builder_type=openstack` on Ubuntu (Debian `os_family`).
+runs with `packer_builder_type=openstack` on Ubuntu and Debian (both Debian
+`os_family`).
 
 Judge each change against how the chroot differs from the booted VM that
 image-builder expects. The element's `README.rst` and the comments in the

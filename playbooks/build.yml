@@ -2,45 +2,89 @@
 - name: Build and publish a CAPI image
   hosts: all
 
+  # The create-once checks read the bucket over HTTPS and the uploads write it
+  # through rclone; both must address the same prefix.
+  vars:
+    bucket_path: osism/openstack-k8s-capi-images
+    bucket_url: "https://nbg1.your-objectstorage.com/{{ bucket_path }}"
+    rclone_bucket: "s3:{{ bucket_path }}"
+
   tasks:
-    - name: Resolve the override file for this build
+    # image_os is a job var an untrusted Zuul change can redefine via
+    # speculative .zuul.yaml, and it names the DIB OS element and every
+    # published path. Guard it before anything is derived from it, mirroring
+    # the kubernetes_version guard in playbooks/validate.yml.
+    - name: Validate the image OS build input
+      ansible.builtin.assert:
+        that:
+          - image_os | default('ubuntu') in ['ubuntu', 'debian']
+        fail_msg: >-
+          Refusing to build: image_os must be ubuntu or debian
+          (image_os={{ image_os | default('ubuntu') }}).
+
+    - name: Resolve the override file and the image OS for this build
       ansible.builtin.set_fact:
         override_file: "overrides/{{ kubernetes_version | default('v1.33') }}.json"
+        image_os: "{{ image_os | default('ubuntu') }}"
 
-    # The Ubuntu base of a series is part of its override file: ubuntu_release
-    # is the codename DIB downloads the cloud image for (noble, resolute) and
-    # ubuntu_version the prefix in the image name (2404, 2604). Both are
-    # required so a series can never silently fall back to an older base.
+    - name: Load the override file
+      ansible.builtin.set_fact:
+        override_data: "{{ lookup('file', playbook_dir ~ '/../' ~ override_file) | from_json }}"
+
+    # The base of a series is part of its override file: <os>_release is the
+    # codename DIB builds on (noble, resolute, trixie) and <os>_version the
+    # prefix in the image name (2404, 2604, 13). Both are required so a series
+    # can never silently fall back to another base; a series without them has
+    # no image of that OS.
+    - name: Check that the override file names a base for the image OS
+      ansible.builtin.assert:
+        that:
+          - (image_os ~ '_release') in override_data
+          - (image_os ~ '_version') in override_data
+        fail_msg: >-
+          Refusing to build: {{ override_file }} has no
+          {{ image_os }}_release/{{ image_os }}_version, so the
+          {{ kubernetes_version | default('v1.33') }} series has no
+          {{ image_os }} image.
+
+    # last-X is kept as the Ubuntu alias of last-ubuntu-X; Debian images only
+    # get last-debian-X. The first entry is the one the others are backfilled
+    # from.
     - name: Derive the image name components from the override file
       ansible.builtin.set_fact:
-        ubuntu_release: "{{ override_data.ubuntu_release }}"
-        image_dir: "ubuntu-{{ override_data.ubuntu_version }}-kube-{{ override_data.kubernetes_series }}"
-        image_basename: "ubuntu-{{ override_data.ubuntu_version }}-kube-{{ override_data.kubernetes_semver }}"
-        series_basename: "ubuntu-{{ override_data.ubuntu_version }}-kube-{{ override_data.kubernetes_series }}"
-        last_file: "last-{{ override_data.kubernetes_series | regex_replace('^v', '') }}"
+        os_release: "{{ override_data[image_os ~ '_release'] }}"
+        os_version: "{{ override_data[image_os ~ '_version'] }}"
+        image_dir: "{{ name_prefix }}-{{ override_data.kubernetes_series }}"
+        image_basename: "{{ name_prefix }}-{{ override_data.kubernetes_semver }}"
+        series_basename: "{{ name_prefix }}-{{ override_data.kubernetes_series }}"
+        last_files: "{{ (['last-' ~ series] if image_os == 'ubuntu' else []) + ['last-' ~ image_os ~ '-' ~ series] }}"
       vars:
-        override_data: "{{ lookup('file', playbook_dir ~ '/../' ~ override_file) | from_json }}"
+        name_prefix: "{{ image_os }}-{{ override_data[image_os ~ '_version'] }}-kube"
+        series: "{{ override_data.kubernetes_series | regex_replace('^v', '') }}"
 
     - name: Validate the derived image name components
       ansible.builtin.assert:
         that:
-          - ubuntu_release is match('^[a-z]+$')
+          - os_release is match('^[a-z]+$')
+          - os_version is match('^[0-9]+$')
           - image_dir is match('^[A-Za-z0-9._-]+$')
           - image_basename is match('^[A-Za-z0-9._-]+$')
           - series_basename is match('^[A-Za-z0-9._-]+$')
-          - last_file is match('^[A-Za-z0-9._-]+$')
+          - last_files | reject('match', '^[A-Za-z0-9._-]+$') | list | length == 0
         fail_msg: >-
           Refusing to build: image name components derived from the override file
           contain unexpected characters
-          (ubuntu_release={{ ubuntu_release }}, image_dir={{ image_dir }},
-          image_basename={{ image_basename }}, series_basename={{ series_basename }},
-          last_file={{ last_file }}).
+          (os_release={{ os_release }}, os_version={{ os_version }},
+          image_dir={{ image_dir }}, image_basename={{ image_basename }},
+          series_basename={{ series_basename }},
+          last_files={{ last_files | join(',') }}).
 
     # Every publish run produces two images from one build:
     #
     #   * the versioned image (ubuntu-2604-kube-v1.37.0.qcow2) is create-once:
     #     when its CHECKSUM is already in the object storage, it is not
-    #     overwritten and the last-X pointer is left untouched;
+    #     overwritten and the last-X pointers are left untouched, apart from
+    #     backfilling a missing pointer (see below);
     #   * the series image (ubuntu-2604-kube-v1.37.qcow2) is always overwritten,
     #     so every merged change that triggers the job ships a fresh "latest"
     #     image of the series, even when the Kubernetes version did not change.
@@ -49,7 +93,7 @@
     # change under test.
     - name: Check whether the versioned image has already been published
       ansible.builtin.uri:
-        url: "https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/{{ image_dir }}/{{ image_basename }}.qcow2.CHECKSUM"
+        url: "{{ bucket_url }}/{{ image_dir }}/{{ image_basename }}.qcow2.CHECKSUM"
         method: HEAD
         # A missing object answers 403 instead of 404 because the bucket does
         # not grant list permission; both mean "not published yet".
@@ -69,48 +113,12 @@
           is refreshed from this build.
       when: image_already_published
 
-    - name: Build the image with disk-image-create
-      ansible.builtin.shell:
-        executable: /bin/bash
-        chdir: "{{ zuul.project.src_dir }}"
-        cmd: |
-          set -e
-          set -x
-
-          source /tmp/venv/bin/activate
-          export ELEMENTS_PATH=./elements
-          export DIB_RELEASE="${UBUNTU_RELEASE}"
-
-          export DIB_K8S_CAPI_OVERRIDE
-          DIB_K8S_CAPI_OVERRIDE="$(readlink -f "${OVERRIDE_FILE}")"
-
-          FILE="${IMAGE_BASENAME}.qcow2"
-          SERIES_FILE="${SERIES_BASENAME}.qcow2"
-
-          mkdir -p output
-          disk-image-create -a amd64 -t qcow2 \
-              -o "output/${IMAGE_BASENAME}" \
-              ubuntu vm growroot openssh-server k8s-capi
-
-          cd output
-          # The series image is the same build under its unversioned name; a
-          # hard link keeps the CHECKSUM line carrying the right file name.
-          ln -f "${FILE}" "${SERIES_FILE}"
-          sha256sum "${FILE}" > "${FILE}.CHECKSUM"
-          sha256sum "${SERIES_FILE}" > "${SERIES_FILE}.CHECKSUM"
-          printf '%s %s/%s\n' "$(date +%F)" "${IMAGE_DIR}" "${FILE}" > "${LAST_FILE}"
-      environment:
-        OVERRIDE_FILE: "{{ override_file }}"
-        UBUNTU_RELEASE: "{{ ubuntu_release }}"
-        IMAGE_DIR: "{{ image_dir }}"
-        IMAGE_BASENAME: "{{ image_basename }}"
-        SERIES_BASENAME: "{{ series_basename }}"
-        LAST_FILE: "{{ last_file }}"
-      changed_when: true
-
-    - name: Write the rclone configuration with the object-storage credentials
+    # Written for the pointer backfill below, which does not wait for the
+    # build, removed again before the build and written anew after it.
+    - &write_rclone_conf
+      name: Write the rclone configuration with the object-storage credentials
       ansible.builtin.copy:
-        dest: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}/.rclone.conf"
+        dest: "{{ ansible_user_dir }}/.rclone.conf"
         mode: "0600"
         content: |
           [s3]
@@ -125,7 +133,115 @@
       when: upload_image | default(false) | bool
       no_log: true
 
-    - name: Publish the versioned image and the last-X pointer to the object storage
+    # The pointers are create-once too, so without a backfill a series whose
+    # versioned image is already published would get a newly added pointer
+    # (last-ubuntu-X) only with its next Kubernetes patch release. Check every
+    # pointer after the first one and copy each missing one server-side from
+    # the first, which keeps the original build date. Debian has a single
+    # pointer, so nothing is backfilled there. The backfill needs no image, so
+    # it runs before the build and a failing build cannot hold it back.
+    - name: Check which additional last-X pointers are already published
+      ansible.builtin.uri:
+        url: "{{ bucket_url }}/{{ item }}"
+        method: HEAD
+        # As above, 403 and 404 both mean "not published yet".
+        status_code: [200, 403, 404]
+      loop: "{{ last_files[1:] }}"
+      register: published_pointers
+      when:
+        - upload_image | default(false) | bool
+        - image_already_published
+
+    # A missing source means the versioned image is published without its
+    # last-X, an inconsistent bucket that needs a human, so the copy must fail.
+    # rclone treats a missing S3 object as an empty directory and would copy
+    # nothing and exit 0; --error-on-no-transfer makes that a failure.
+    - name: Backfill missing last-X pointers from the first pointer
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -e
+          set -x
+
+          rclone copyto --error-on-no-transfer \
+              "${BUCKET}/${SOURCE}" "${BUCKET}/${TARGET}"
+      environment:
+        RCLONE_CONFIG: "{{ ansible_user_dir }}/.rclone.conf"
+        BUCKET: "{{ rclone_bucket }}"
+        SOURCE: "{{ last_files[0] }}"
+        TARGET: "{{ item.item }}"
+      loop: "{{ published_pointers.results | default([]) | selectattr('status', 'defined') | rejectattr('status', 'equalto', 200) | list }}"
+      loop_control:
+        label: "{{ item.item }}"
+      when:
+        - upload_image | default(false) | bool
+        - image_already_published
+      changed_when: true
+
+    # disk-image-create runs pip, Galaxy and image-builder's downloads as root
+    # in a chroot that reaches the host through /proc, so the write-capable
+    # bucket credentials must not be on the host while it runs.
+    - name: Remove the object-storage credentials before the build
+      ansible.builtin.file:
+        path: "{{ ansible_user_dir }}/.rclone.conf"
+        state: absent
+
+    - name: Build the image with disk-image-create
+      ansible.builtin.shell:
+        executable: /bin/bash
+        chdir: "{{ zuul.project.src_dir }}"
+        cmd: |
+          set -e
+          set -x
+
+          source /tmp/venv/bin/activate
+          export ELEMENTS_PATH=./elements
+          export DIB_RELEASE="${OS_RELEASE}"
+          # debootstrap builds the Debian root filesystem on this host and only
+          # warns when it cannot verify the archive signature. With
+          # --force-check-gpg a missing debian-archive-keyring (pre.yml) aborts
+          # the build, and so does a keyring too old to verify the release;
+          # the remedy then is a newer debian-archive-keyring on the host.
+          if [ "${IMAGE_OS}" = debian ]; then
+              export DIB_DEBOOTSTRAP_EXTRA_ARGS=--force-check-gpg
+          fi
+
+          export DIB_K8S_CAPI_OVERRIDE
+          DIB_K8S_CAPI_OVERRIDE="$(readlink -f "${OVERRIDE_FILE}")"
+
+          FILE="${IMAGE_BASENAME}.qcow2"
+          SERIES_FILE="${SERIES_BASENAME}.qcow2"
+
+          mkdir -p output
+          disk-image-create -a amd64 -t qcow2 \
+              -o "output/${IMAGE_BASENAME}" \
+              "${IMAGE_OS}" vm growroot openssh-server k8s-capi
+
+          cd output
+          # The series image is the same build under its unversioned name; a
+          # hard link keeps the CHECKSUM line carrying the right file name.
+          ln -f "${FILE}" "${SERIES_FILE}"
+          sha256sum "${FILE}" > "${FILE}.CHECKSUM"
+          sha256sum "${SERIES_FILE}" > "${SERIES_FILE}.CHECKSUM"
+          # Every pointer gets the same line. The names are asserted to be
+          # [A-Za-z0-9._-] above, so splitting LAST_FILES on spaces is safe.
+          LINE="$(date +%F) ${IMAGE_DIR}/${FILE}"
+          for last_file in ${LAST_FILES}; do
+              printf '%s\n' "${LINE}" > "${last_file}"
+          done
+      environment:
+        OVERRIDE_FILE: "{{ override_file }}"
+        IMAGE_OS: "{{ image_os }}"
+        OS_RELEASE: "{{ os_release }}"
+        IMAGE_DIR: "{{ image_dir }}"
+        IMAGE_BASENAME: "{{ image_basename }}"
+        SERIES_BASENAME: "{{ series_basename }}"
+        LAST_FILES: "{{ last_files | join(' ') }}"
+      changed_when: true
+
+    - *write_rclone_conf
+
+    - name: Publish the versioned image and the last-X pointers to the object storage
       ansible.builtin.shell:
         executable: /bin/bash
         chdir: "{{ zuul.project.src_dir }}"
@@ -136,14 +252,21 @@
           FILE="${IMAGE_BASENAME}.qcow2"
 
           cd output
-          rclone copyto "${FILE}" "s3:osism/openstack-k8s-capi-images/${IMAGE_DIR}/${FILE}"
-          rclone copyto "${FILE}.CHECKSUM" "s3:osism/openstack-k8s-capi-images/${IMAGE_DIR}/${FILE}.CHECKSUM"
-          rclone copyto "${LAST_FILE}" "s3:osism/openstack-k8s-capi-images/${LAST_FILE}"
+          rclone copyto "${FILE}" "${BUCKET}/${IMAGE_DIR}/${FILE}"
+          for last_file in ${LAST_FILES}; do
+              rclone copyto "${last_file}" "${BUCKET}/${last_file}"
+          done
+          # The CHECKSUM marks the versioned image as published and nothing
+          # rewrites the pointers after that, so it goes last: a run that dies
+          # before it republishes the image and every pointer instead of
+          # leaving them split or stale.
+          rclone copyto "${FILE}.CHECKSUM" "${BUCKET}/${IMAGE_DIR}/${FILE}.CHECKSUM"
       environment:
-        RCLONE_CONFIG: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}/.rclone.conf"
+        RCLONE_CONFIG: "{{ ansible_user_dir }}/.rclone.conf"
+        BUCKET: "{{ rclone_bucket }}"
         IMAGE_DIR: "{{ image_dir }}"
         IMAGE_BASENAME: "{{ image_basename }}"
-        LAST_FILE: "{{ last_file }}"
+        LAST_FILES: "{{ last_files | join(' ') }}"
       when:
         - upload_image | default(false) | bool
         - not image_already_published
@@ -160,11 +283,33 @@
           SERIES_FILE="${SERIES_BASENAME}.qcow2"
 
           cd output
-          rclone copyto "${SERIES_FILE}" "s3:osism/openstack-k8s-capi-images/${IMAGE_DIR}/${SERIES_FILE}"
-          rclone copyto "${SERIES_FILE}.CHECKSUM" "s3:osism/openstack-k8s-capi-images/${IMAGE_DIR}/${SERIES_FILE}.CHECKSUM"
+          rclone copyto "${SERIES_FILE}" "${BUCKET}/${IMAGE_DIR}/${SERIES_FILE}"
+          rclone copyto "${SERIES_FILE}.CHECKSUM" "${BUCKET}/${IMAGE_DIR}/${SERIES_FILE}.CHECKSUM"
       environment:
-        RCLONE_CONFIG: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}/.rclone.conf"
+        RCLONE_CONFIG: "{{ ansible_user_dir }}/.rclone.conf"
+        BUCKET: "{{ rclone_bucket }}"
         IMAGE_DIR: "{{ image_dir }}"
         SERIES_BASENAME: "{{ series_basename }}"
       when: upload_image | default(false) | bool
       changed_when: true
+
+    # The pointer uploads and the backfill only ever run here, against the
+    # live bucket, so check what they left behind: every pointer must be
+    # published (a missing one fails the GET) with the same line as the first,
+    # since last-X is an alias of last-ubuntu-X.
+    - name: Read the published last-X pointers
+      ansible.builtin.uri:
+        url: "{{ bucket_url }}/{{ item }}"
+        return_content: true
+      loop: "{{ last_files }}"
+      register: published_pointer_lines
+      when: upload_image | default(false) | bool
+
+    - name: Check that every last-X pointer carries the same line
+      ansible.builtin.assert:
+        that:
+          - published_pointer_lines.results | map(attribute='content') | unique | list | length == 1
+        fail_msg: >-
+          The published pointers {{ last_files | join(', ') }} differ
+          ({{ published_pointer_lines.results | map(attribute='content') | map('trim') | join(' / ') }}).
+      when: upload_image | default(false) | bool

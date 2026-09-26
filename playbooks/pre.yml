@@ -16,6 +16,9 @@
           # cloud-image-utils provides cloud-localds, used by
           # playbooks/validate.yml to build the cloud-init NoCloud seed ISO.
           - cloud-image-utils
+          # debootstrap verifies the Debian archive signature with this
+          # keyring; build.yml forces that check for Debian images.
+          - debian-archive-keyring
           - debootstrap
           - dosfstools
           - gdisk
