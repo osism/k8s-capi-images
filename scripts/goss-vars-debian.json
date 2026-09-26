@@ -1,0 +1,49 @@
+{
+    "common-kernel-param": {
+        "net.ipv4.conf.all.rp_filter": {
+            "value": "1"
+        }
+    },
+    "common-package": {
+        "apt-transport-https": null,
+        "auditd": null,
+        "chrony": null,
+        "conntrack": null,
+        "curl": null,
+        "ebtables": null,
+        "gnupg": null,
+        "jq": null,
+        "libnetfilter-acct1": null,
+        "libnetfilter-cttimeout1": null,
+        "libnetfilter-log1": null,
+        "python3-netifaces": null,
+        "python3-pip": null,
+        "socat": null
+    },
+    "common-service": {
+        "apt-daily-upgrade.timer": {
+            "enabled": false,
+            "running": false
+        },
+        "apt-daily.timer": {
+            "enabled": false,
+            "running": false
+        }
+    },
+    "qemu": {
+        "package": {
+            "cloud-guest-utils": null,
+            "cloud-initramfs-dyn-netconf": null,
+            "hyperv-daemons": null,
+            "linux-perf": null,
+            "netplan.io": null,
+            "open-vm-tools": null
+        },
+        "service": {
+            "networkd-dispatcher": {
+                "enabled": true,
+                "running": true
+            }
+        }
+    }
+}
