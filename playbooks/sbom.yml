@@ -46,20 +46,45 @@
           Refusing to generate the SBOM: kubernetes_version must contain only
           [A-Za-z0-9._-] (kubernetes_version={{ kubernetes_version | default('v1.33') }}).
 
-    - name: Resolve the override file for this build
+    # image_os is a job var as well, and it names every object this play
+    # removes and uploads, so it is guarded the same way.
+    - name: Validate the image OS build input
+      ansible.builtin.assert:
+        that:
+          - image_os | default('ubuntu') in ['ubuntu', 'debian']
+        fail_msg: >-
+          Refusing to generate the SBOM: image_os must be ubuntu or debian
+          (image_os={{ image_os | default('ubuntu') }}).
+
+    - name: Resolve the override file and the image OS for this build
       ansible.builtin.set_fact:
         override_file: "overrides/{{ kubernetes_version | default('v1.33') }}.json"
+        image_os: "{{ image_os | default('ubuntu') }}"
+
+    - name: Load the override file
+      ansible.builtin.set_fact:
+        override_data: "{{ lookup('file', playbook_dir ~ '/../' ~ override_file) | from_json }}"
+
+    - name: Check that the override file names a base for the image OS
+      ansible.builtin.assert:
+        that:
+          - (image_os ~ '_version') in override_data
+        fail_msg: >-
+          Refusing to generate the SBOM: {{ override_file }} has no
+          {{ image_os }}_version, so the
+          {{ kubernetes_version | default('v1.33') }} series has no
+          {{ image_os }} image.
 
     # Same derivation as playbooks/build.yml; facts do not carry over between
     # the playbooks of a job.
     - name: Derive the image name components from the override file
       ansible.builtin.set_fact:
-        image_dir: "ubuntu-{{ override_data.ubuntu_version }}-kube-{{ override_data.kubernetes_series }}"
-        image_basename: "ubuntu-{{ override_data.ubuntu_version }}-kube-{{ override_data.kubernetes_semver }}"
-        series_basename: "ubuntu-{{ override_data.ubuntu_version }}-kube-{{ override_data.kubernetes_series }}"
+        image_dir: "{{ name_prefix }}-{{ override_data.kubernetes_series }}"
+        image_basename: "{{ name_prefix }}-{{ override_data.kubernetes_semver }}"
+        series_basename: "{{ name_prefix }}-{{ override_data.kubernetes_series }}"
         kubernetes_semver: "{{ override_data.kubernetes_semver }}"
       vars:
-        override_data: "{{ lookup('file', playbook_dir ~ '/../' ~ override_file) | from_json }}"
+        name_prefix: "{{ image_os }}-{{ override_data[image_os ~ '_version'] }}-kube"
 
     - name: Validate the derived image name components
       ansible.builtin.assert:
@@ -266,7 +291,7 @@
 
         # The exclude keeps the unpacked image layers out of the host component
         # list, where syft would label their Debian packages as packages of the
-        # Ubuntu base. SYFT_FILE_METADATA_SELECTION=none drops the per-file
+        # image's base. SYFT_FILE_METADATA_SELECTION=none drops the per-file
         # components, which are most of syft's default output and add no
         # package information. The format is pinned to CycloneDX 1.6 because
         # this syft version writes 1.7 by default.

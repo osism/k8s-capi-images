@@ -3,44 +3,80 @@
   hosts: all
 
   tasks:
-    - name: Resolve the override file for this build
+    # image_os is a job var an untrusted Zuul change can redefine via
+    # speculative .zuul.yaml, and it names the DIB OS element and every
+    # published path. Guard it before anything is derived from it, mirroring
+    # the kubernetes_version guard in playbooks/validate.yml.
+    - name: Validate the image OS build input
+      ansible.builtin.assert:
+        that:
+          - image_os | default('ubuntu') in ['ubuntu', 'debian']
+        fail_msg: >-
+          Refusing to build: image_os must be ubuntu or debian
+          (image_os={{ image_os | default('ubuntu') }}).
+
+    - name: Resolve the override file and the image OS for this build
       ansible.builtin.set_fact:
         override_file: "overrides/{{ kubernetes_version | default('v1.33') }}.json"
+        image_os: "{{ image_os | default('ubuntu') }}"
 
-    # The Ubuntu base of a series is part of its override file: ubuntu_release
-    # is the codename DIB downloads the cloud image for (noble, resolute) and
-    # ubuntu_version the prefix in the image name (2404, 2604). Both are
-    # required so a series can never silently fall back to an older base.
+    - name: Load the override file
+      ansible.builtin.set_fact:
+        override_data: "{{ lookup('file', playbook_dir ~ '/../' ~ override_file) | from_json }}"
+
+    # The base of a series is part of its override file: <os>_release is the
+    # codename DIB builds on (noble, resolute, trixie) and <os>_version the
+    # prefix in the image name (2404, 2604, 13). Both are required so a series
+    # can never silently fall back to another base; a series without them has
+    # no image of that OS.
+    - name: Check that the override file names a base for the image OS
+      ansible.builtin.assert:
+        that:
+          - (image_os ~ '_release') in override_data
+          - (image_os ~ '_version') in override_data
+        fail_msg: >-
+          Refusing to build: {{ override_file }} has no
+          {{ image_os }}_release/{{ image_os }}_version, so the
+          {{ kubernetes_version | default('v1.33') }} series has no
+          {{ image_os }} image.
+
+    # last-X is kept as the Ubuntu alias of last-ubuntu-X; Debian images only
+    # get last-debian-X. The first entry is the one the others are backfilled
+    # from.
     - name: Derive the image name components from the override file
       ansible.builtin.set_fact:
-        ubuntu_release: "{{ override_data.ubuntu_release }}"
-        image_dir: "ubuntu-{{ override_data.ubuntu_version }}-kube-{{ override_data.kubernetes_series }}"
-        image_basename: "ubuntu-{{ override_data.ubuntu_version }}-kube-{{ override_data.kubernetes_semver }}"
-        series_basename: "ubuntu-{{ override_data.ubuntu_version }}-kube-{{ override_data.kubernetes_series }}"
-        last_file: "last-{{ override_data.kubernetes_series | regex_replace('^v', '') }}"
+        os_release: "{{ override_data[image_os ~ '_release'] }}"
+        os_version: "{{ override_data[image_os ~ '_version'] }}"
+        image_dir: "{{ name_prefix }}-{{ override_data.kubernetes_series }}"
+        image_basename: "{{ name_prefix }}-{{ override_data.kubernetes_semver }}"
+        series_basename: "{{ name_prefix }}-{{ override_data.kubernetes_series }}"
+        last_files: "{{ (['last-' ~ series] if image_os == 'ubuntu' else []) + ['last-' ~ image_os ~ '-' ~ series] }}"
       vars:
-        override_data: "{{ lookup('file', playbook_dir ~ '/../' ~ override_file) | from_json }}"
+        name_prefix: "{{ image_os }}-{{ override_data[image_os ~ '_version'] }}-kube"
+        series: "{{ override_data.kubernetes_series | regex_replace('^v', '') }}"
 
     - name: Validate the derived image name components
       ansible.builtin.assert:
         that:
-          - ubuntu_release is match('^[a-z]+$')
+          - os_release is match('^[a-z]+$')
+          - os_version is match('^[0-9]+$')
           - image_dir is match('^[A-Za-z0-9._-]+$')
           - image_basename is match('^[A-Za-z0-9._-]+$')
           - series_basename is match('^[A-Za-z0-9._-]+$')
-          - last_file is match('^[A-Za-z0-9._-]+$')
+          - last_files | reject('match', '^[A-Za-z0-9._-]+$') | list | length == 0
         fail_msg: >-
           Refusing to build: image name components derived from the override file
           contain unexpected characters
-          (ubuntu_release={{ ubuntu_release }}, image_dir={{ image_dir }},
-          image_basename={{ image_basename }}, series_basename={{ series_basename }},
-          last_file={{ last_file }}).
+          (os_release={{ os_release }}, os_version={{ os_version }},
+          image_dir={{ image_dir }}, image_basename={{ image_basename }},
+          series_basename={{ series_basename }},
+          last_files={{ last_files | join(',') }}).
 
     # Every publish run produces two images from one build:
     #
     #   * the versioned image (ubuntu-2604-kube-v1.37.0.qcow2) is create-once:
     #     when its CHECKSUM is already in the object storage, it is not
-    #     overwritten and the last-X pointer is left untouched;
+    #     overwritten and the last-X pointers are left untouched;
     #   * the series image (ubuntu-2604-kube-v1.37.qcow2) is always overwritten,
     #     so every merged change that triggers the job ships a fresh "latest"
     #     image of the series, even when the Kubernetes version did not change.
@@ -79,7 +115,15 @@
 
           source /tmp/venv/bin/activate
           export ELEMENTS_PATH=./elements
-          export DIB_RELEASE="${UBUNTU_RELEASE}"
+          export DIB_RELEASE="${OS_RELEASE}"
+          # debootstrap builds the Debian root filesystem on this host and only
+          # warns when it cannot verify the archive signature. With
+          # --force-check-gpg a missing debian-archive-keyring (pre.yml) aborts
+          # the build, and so does a keyring too old to verify the release;
+          # the remedy then is a newer debian-archive-keyring on the host.
+          if [ "${IMAGE_OS}" = debian ]; then
+              export DIB_DEBOOTSTRAP_EXTRA_ARGS=--force-check-gpg
+          fi
 
           export DIB_K8S_CAPI_OVERRIDE
           DIB_K8S_CAPI_OVERRIDE="$(readlink -f "${OVERRIDE_FILE}")"
@@ -90,7 +134,7 @@
           mkdir -p output
           disk-image-create -a amd64 -t qcow2 \
               -o "output/${IMAGE_BASENAME}" \
-              ubuntu vm growroot openssh-server k8s-capi
+              "${IMAGE_OS}" vm growroot openssh-server k8s-capi
 
           cd output
           # The series image is the same build under its unversioned name; a
@@ -98,14 +142,20 @@
           ln -f "${FILE}" "${SERIES_FILE}"
           sha256sum "${FILE}" > "${FILE}.CHECKSUM"
           sha256sum "${SERIES_FILE}" > "${SERIES_FILE}.CHECKSUM"
-          printf '%s %s/%s\n' "$(date +%F)" "${IMAGE_DIR}" "${FILE}" > "${LAST_FILE}"
+          # Every pointer gets the same line. The names are asserted to be
+          # [A-Za-z0-9._-] above, so splitting LAST_FILES on spaces is safe.
+          LINE="$(date +%F) ${IMAGE_DIR}/${FILE}"
+          for last_file in ${LAST_FILES}; do
+              printf '%s\n' "${LINE}" > "${last_file}"
+          done
       environment:
         OVERRIDE_FILE: "{{ override_file }}"
-        UBUNTU_RELEASE: "{{ ubuntu_release }}"
+        IMAGE_OS: "{{ image_os }}"
+        OS_RELEASE: "{{ os_release }}"
         IMAGE_DIR: "{{ image_dir }}"
         IMAGE_BASENAME: "{{ image_basename }}"
         SERIES_BASENAME: "{{ series_basename }}"
-        LAST_FILE: "{{ last_file }}"
+        LAST_FILES: "{{ last_files | join(' ') }}"
       changed_when: true
 
     - name: Write the rclone configuration with the object-storage credentials
@@ -125,7 +175,7 @@
       when: upload_image | default(false) | bool
       no_log: true
 
-    - name: Publish the versioned image and the last-X pointer to the object storage
+    - name: Publish the versioned image and the last-X pointers to the object storage
       ansible.builtin.shell:
         executable: /bin/bash
         chdir: "{{ zuul.project.src_dir }}"
@@ -137,13 +187,19 @@
 
           cd output
           rclone copyto "${FILE}" "s3:osism/openstack-k8s-capi-images/${IMAGE_DIR}/${FILE}"
+          for last_file in ${LAST_FILES}; do
+              rclone copyto "${last_file}" "s3:osism/openstack-k8s-capi-images/${last_file}"
+          done
+          # The CHECKSUM marks the versioned image as published and nothing
+          # rewrites the pointers after that, so it goes last: a run that dies
+          # before it republishes the image and every pointer instead of
+          # leaving them split or stale.
           rclone copyto "${FILE}.CHECKSUM" "s3:osism/openstack-k8s-capi-images/${IMAGE_DIR}/${FILE}.CHECKSUM"
-          rclone copyto "${LAST_FILE}" "s3:osism/openstack-k8s-capi-images/${LAST_FILE}"
       environment:
         RCLONE_CONFIG: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}/.rclone.conf"
         IMAGE_DIR: "{{ image_dir }}"
         IMAGE_BASENAME: "{{ image_basename }}"
-        LAST_FILE: "{{ last_file }}"
+        LAST_FILES: "{{ last_files | join(' ') }}"
       when:
         - upload_image | default(false) | bool
         - not image_already_published
