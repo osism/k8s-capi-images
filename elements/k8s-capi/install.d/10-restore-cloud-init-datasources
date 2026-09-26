@@ -22,6 +22,10 @@
 # unrestricted list from the cloud-init package (90_dpkg.cfg), where ds-identify
 # picks ConfigDrive/OpenStack from DMI and the attached drive, exactly as in the
 # Packer-built images.
+#
+# DIB's debian element does not depend on cloud-init-datasources, so on Debian
+# there is nothing to remove, and the leftover check passes because trixie's
+# cloud-init package ships only 05_logging.cfg in /etc/cloud/cloud.cfg.d.
 
 if [ "${DIB_DEBUG_TRACE:-0}" -gt 0 ]; then
     set -x
