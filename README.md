@@ -1,13 +1,23 @@
 # kubernetes-capi-images
 
-Images intended for use with Kubernetes CAPI providers. More details on
-https://image-builder.sigs.k8s.io/capi/capi.html.
+**OpenStack** node images for Kubernetes [Cluster API](https://cluster-api.sigs.k8s.io/),
+intended for use with the
+[Cluster API Provider OpenStack](https://github.com/kubernetes-sigs/cluster-api-provider-openstack)
+(CAPO). More details on https://image-builder.sigs.k8s.io/capi/capi.html and
+https://image-builder.sigs.k8s.io/capi/providers/openstack.html.
+
+> [!IMPORTANT]
+> These images are built for OpenStack only. They are qcow2 disk images meant
+> to be uploaded to Glance, built with the `openstack` target of Image Builder,
+> and they rely on the OpenStack metadata sources (config drive or metadata
+> service) for cloud-init. They are not intended for other Cluster API
+> infrastructure providers such as AWS, Azure or vSphere.
 
 The images are built with [diskimage-builder](https://docs.openstack.org/diskimage-builder/latest/)
 (DIB). The custom `k8s-capi` element under `elements/` reuses the Ansible roles
 of the upstream [Image Builder](https://github.com/kubernetes-sigs/image-builder/)
 project, pinned to an immutable commit, so the resulting `ubuntu-XXXX-kube-vX.YY`
-qcow2 images match what Image Builder produces. The element is documented in
+qcow2 images match what Image Builder produces for OpenStack. The element is documented in
 [`elements/k8s-capi/README.rst`](elements/k8s-capi/README.rst).
 
 The Ubuntu base image is fixed per Kubernetes series and is part of the
