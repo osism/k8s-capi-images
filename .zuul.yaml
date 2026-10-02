@@ -25,6 +25,28 @@
           v+qkJZB8QJkIosT7t3M8MzbnSDpx6sDy4ZtcnUVCaBVBRmfzunzpV9vL93RdYvjlpRMe3
           avb2hxSMfH0al4xskiDr8bBKEw1B+PkJ8USlHEeCAQJRZwcSkIE6WkhuNvF2TM=
 
+# One publish run per series at a time. playbooks/build.yml and
+# playbooks/sbom.yml look at the object storage and upload in separate steps
+# (the create-once check of the versioned image, the CHECKSUM comparison in
+# front of the SBOM upload). A second run of the series in between would
+# leave an image next to the CHECKSUM or the SBOM of another build. Every
+# publish job needs the semaphore of its series.
+- semaphore:
+    name: semaphore-k8s-capi-images-publish-v1.34
+    max: 1
+
+- semaphore:
+    name: semaphore-k8s-capi-images-publish-v1.35
+    max: 1
+
+- semaphore:
+    name: semaphore-k8s-capi-images-publish-v1.36
+    max: 1
+
+- semaphore:
+    name: semaphore-k8s-capi-images-publish-v1.37
+    max: 1
+
 - job:
     name: abstract-k8s-capi-images-build
     abstract: true
@@ -32,13 +54,19 @@
     nodeset: ubuntu-noble-large
     pre-run: playbooks/pre.yml
     # NOTE: the upload tasks still live at the tail of playbooks/build.yml,
-    # which runs BEFORE playbooks/validate.yml, so a publish run uploads the
-    # image before goss validates it. To let validation gate publishing, move
-    # the upload tasks into a playbooks/publish.yml appended AFTER
-    # playbooks/validate.yml here; a failed validation then fails the job
-    # before any upload runs.
+    # and playbooks/sbom.yml holds the object-storage tasks of the SBOM. Both
+    # run BEFORE playbooks/validate.yml, so a publish run uploads the image
+    # and its SBOM before goss validates the image. To let validation gate
+    # publishing, move the object-storage tasks of both playbooks into a
+    # playbooks/publish.yml appended AFTER playbooks/validate.yml here, the
+    # ones of the SBOM after the image upload: the SBOM is only uploaded next
+    # to an image whose published CHECKSUM is the one of this build. A failed
+    # validation then fails the job before any upload runs. A failed SBOM
+    # generation fails the job in playbooks/sbom.yml, after the upload in
+    # playbooks/build.yml, and Zuul then skips playbooks/validate.yml.
     run:
       - playbooks/build.yml
+      - playbooks/sbom.yml
       - playbooks/validate.yml
     timeout: 7200
     vars:
@@ -50,6 +78,16 @@
     parent: abstract-k8s-capi-images-build
     vars:
       upload_image: true
+
+- job:
+    name: k8s-capi-images-unit-tests
+    parent: base
+    run: playbooks/unit-tests.yml
+    files:
+      - ^scripts/build-sbom\.py$
+      - ^tests/.*
+      - ^playbooks/unit-tests\.yml$
+      - ^\.zuul\.yaml$
 
 # Every files matcher below includes .zuul.yaml, so changing the pipeline
 # itself (e.g. arming a publish job) triggers the builds and publishes. Each
@@ -67,6 +105,7 @@
       - ^elements/k8s-capi/.*
       - ^playbooks/.*
       - ^requirements\.txt$
+      - ^scripts/build-sbom\.py$
       - ^\.zuul\.yaml$
 
 - job:
@@ -79,6 +118,7 @@
       - ^elements/k8s-capi/.*
       - ^playbooks/.*
       - ^requirements\.txt$
+      - ^scripts/build-sbom\.py$
       - ^\.zuul\.yaml$
 
 - job:
@@ -91,6 +131,7 @@
       - ^elements/k8s-capi/.*
       - ^playbooks/.*
       - ^requirements\.txt$
+      - ^scripts/build-sbom\.py$
       - ^\.zuul\.yaml$
 
 - job:
@@ -103,11 +144,14 @@
       - ^elements/k8s-capi/.*
       - ^playbooks/.*
       - ^requirements\.txt$
+      - ^scripts/build-sbom\.py$
       - ^\.zuul\.yaml$
 
 - job:
     name: k8s-capi-images-publish-v1.34
     parent: abstract-k8s-capi-images-publish
+    semaphores:
+      - name: semaphore-k8s-capi-images-publish-v1.34
     vars:
       kubernetes_version: v1.34
     files: *files_v1_34
@@ -119,6 +163,8 @@
 - job:
     name: k8s-capi-images-publish-v1.35
     parent: abstract-k8s-capi-images-publish
+    semaphores:
+      - name: semaphore-k8s-capi-images-publish-v1.35
     vars:
       kubernetes_version: v1.35
     files: *files_v1_35
@@ -130,6 +176,8 @@
 - job:
     name: k8s-capi-images-publish-v1.36
     parent: abstract-k8s-capi-images-publish
+    semaphores:
+      - name: semaphore-k8s-capi-images-publish-v1.36
     vars:
       kubernetes_version: v1.36
     files: *files_v1_36
@@ -141,6 +189,8 @@
 - job:
     name: k8s-capi-images-publish-v1.37
     parent: abstract-k8s-capi-images-publish
+    semaphores:
+      - name: semaphore-k8s-capi-images-publish-v1.37
     vars:
       kubernetes_version: v1.37
     files: *files_v1_37
@@ -156,6 +206,7 @@
       jobs:
         - flake8
         - yamllint
+        - k8s-capi-images-unit-tests
         - k8s-capi-images-build-v1.34
         - k8s-capi-images-build-v1.35
         - k8s-capi-images-build-v1.36

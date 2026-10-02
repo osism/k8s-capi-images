@@ -1,0 +1,528 @@
+---
+# Generate the CycloneDX SBOM of a freshly built CAPI image and, in publish
+# runs, upload it next to the image as <image file name>.cdx.json.
+#
+# The SBOM covers three groups of software: the packages in the dpkg database,
+# the Go modules of the binaries the build installs outside dpkg (containerd,
+# runc, crictl), and every pre-pulled container image with its own packages.
+# syft scans a disposable raw copy of the unbooted artifact, mounted read-only,
+# so the published qcow2 stays bit-identical. The pre-pulled images are scanned
+# from their registry by digest: their names are known only from the record the
+# k8s-capi element writes during the build, and their unpacked layers in the
+# image would lose the image they belong to. scripts/build-sbom.py merges the
+# scans into one document that names the sha256 of the qcow2 it describes.
+#
+# A failed generation never keeps an image from being published: this playbook
+# runs after the upload tasks of playbooks/build.yml, rescues the failure and
+# fails the job at its end. A publish run removes the series SBOM of the
+# previous build from the object storage before it generates the new one, and
+# uploads an SBOM only next to an image that is the one it built. syft is
+# pinned by version and verified by checksum.
+- name: Generate and publish the SBOM of the built CAPI image
+  hosts: all
+
+  vars:
+    syft_version: "1.54.0"
+    # sha256 of syft_1.54.0_linux_amd64.tar.gz (syft_1.54.0_checksums.txt of
+    # the anchore/syft release). Bump it together with syft_version.
+    syft_sha256: "54a87372498168b2d033e876fd41fa4e8035b872699e525a57046e1f2f09c860"
+    project_dir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}"
+    bucket_url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images
+    bucket_remote: s3:osism/openstack-k8s-capi-images
+    # Object keys of the two names playbooks/build.yml publishes the image
+    # under. The checksum of an image is <key>.CHECKSUM, its SBOM <key>.cdx.json.
+    series_image_key: "{{ image_dir }}/{{ series_basename }}.qcow2"
+    versioned_image_key: "{{ image_dir }}/{{ image_basename }}.qcow2"
+
+  tasks:
+    # kubernetes_version is a job var an untrusted Zuul change can redefine via
+    # speculative .zuul.yaml, and it flows into override_file. Guard it before
+    # it derives any path, as playbooks/validate.yml does.
+    - name: Validate the build input that flows into the override file path
+      ansible.builtin.assert:
+        that:
+          - kubernetes_version | default('v1.33') is match('^[A-Za-z0-9._-]*$')
+        fail_msg: >-
+          Refusing to generate the SBOM: kubernetes_version must contain only
+          [A-Za-z0-9._-] (kubernetes_version={{ kubernetes_version | default('v1.33') }}).
+
+    - name: Resolve the override file for this build
+      ansible.builtin.set_fact:
+        override_file: "overrides/{{ kubernetes_version | default('v1.33') }}.json"
+
+    # Same derivation as playbooks/build.yml; facts do not carry over between
+    # the playbooks of a job.
+    - name: Derive the image name components from the override file
+      ansible.builtin.set_fact:
+        image_dir: "ubuntu-{{ override_data.ubuntu_version }}-kube-{{ override_data.kubernetes_series }}"
+        image_basename: "ubuntu-{{ override_data.ubuntu_version }}-kube-{{ override_data.kubernetes_semver }}"
+        series_basename: "ubuntu-{{ override_data.ubuntu_version }}-kube-{{ override_data.kubernetes_series }}"
+        kubernetes_semver: "{{ override_data.kubernetes_semver }}"
+      vars:
+        override_data: "{{ lookup('file', playbook_dir ~ '/../' ~ override_file) | from_json }}"
+
+    - name: Validate the derived image name components
+      ansible.builtin.assert:
+        that:
+          - image_dir is match('^[A-Za-z0-9._-]+$')
+          - image_basename is match('^[A-Za-z0-9._-]+$')
+          - series_basename is match('^[A-Za-z0-9._-]+$')
+        fail_msg: >-
+          Refusing to generate the SBOM: image name components derived from the
+          override file contain unexpected characters
+          (image_dir={{ image_dir }}, image_basename={{ image_basename }},
+          series_basename={{ series_basename }}).
+
+    - name: Set the image, SBOM and run-directory paths
+      ansible.builtin.set_fact:
+        image_path: "{{ project_dir }}/output/{{ image_basename }}.qcow2"
+        sbom_path: "{{ project_dir }}/output/{{ image_basename }}.qcow2.cdx.json"
+        series_sbom_path: "{{ project_dir }}/output/{{ series_basename }}.qcow2.cdx.json"
+        images_record: "{{ project_dir }}/output/{{ image_basename }}.d/dib-manifests/k8s-capi-container-images.json"
+        run_dir: "{{ ansible_user_dir }}/sbom-{{ image_basename }}"
+
+    # Publish runs only. playbooks/build.yml wrote .rclone.conf and has already
+    # replaced the series image at this point, so the series SBOM still in the
+    # object storage describes the previous build. It is removed before the
+    # generation starts: whichever way this play ends afterwards, the new
+    # series image has its own SBOM or none. rclone deletefile exits 1 for a
+    # missing object, so it only runs when the object exists; a missing object
+    # answers 403 (see build.yml). A failed removal is rescued like a failed
+    # generation: it must not keep the SBOM of this build from being generated
+    # and uploaded, and it fails the job at the end of the play unless that
+    # upload has replaced the series SBOM.
+    - name: Remove the series SBOM of the previous build
+      when: upload_image | default(false) | bool
+      block:
+        - name: Check whether a series SBOM of an earlier build is published
+          ansible.builtin.uri:
+            url: "{{ bucket_url }}/{{ series_image_key }}.cdx.json"
+            method: HEAD
+            status_code: [200, 403, 404]
+          register: stale_series_sbom
+          until: stale_series_sbom is succeeded
+          retries: 3
+          delay: 10
+
+        - name: Remove the stale series SBOM from the object storage
+          ansible.builtin.command:
+            argv:
+              - rclone
+              - deletefile
+              - "{{ bucket_remote }}/{{ series_image_key }}.cdx.json"
+          environment:
+            RCLONE_CONFIG: "{{ project_dir }}/.rclone.conf"
+          when: stale_series_sbom.status == 200
+          changed_when: true
+
+      rescue:
+        - name: Show the task that failed the removal of the stale series SBOM
+          ansible.builtin.debug:
+            msg:
+              - "Failed task: {{ ansible_failed_task.name }}"
+              - "{{ ansible_failed_result }}"
+
+        - name: Record that the stale series SBOM was not removed
+          ansible.builtin.set_fact:
+            stale_series_sbom_removed: false
+
+    - name: Generate the SBOM
+      block:
+        - name: Create the SBOM run directory
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: directory
+            mode: "0755"
+          loop:
+            - "{{ run_dir }}"
+            - "{{ run_dir }}/root"
+            - "{{ run_dir }}/images"
+
+        - name: Download and verify the pinned syft release
+          ansible.builtin.get_url:
+            url: "https://github.com/anchore/syft/releases/download/v{{ syft_version }}/syft_{{ syft_version }}_linux_amd64.tar.gz"
+            dest: "{{ run_dir }}/syft.tar.gz"
+            checksum: "sha256:{{ syft_sha256 }}"
+            mode: "0644"
+          register: syft_download
+          until: syft_download is succeeded
+          retries: 5
+          delay: 10
+
+        - name: Unpack the syft binary
+          ansible.builtin.unarchive:
+            src: "{{ run_dir }}/syft.tar.gz"
+            dest: "{{ run_dir }}"
+            remote_src: true
+            include:
+              - syft
+
+        # The k8s-capi element lists the pre-pulled images while the build-time
+        # containerd runs, and DIB's manifests element copies that record next
+        # to the image. Listing them is non-fatal in the build, so a missing
+        # record surfaces here.
+        - name: Check for the record of the pre-pulled images
+          ansible.builtin.stat:
+            path: "{{ images_record }}"
+            get_checksum: false
+          register: images_record_stat
+
+        - name: Fail when the build left no record of the pre-pulled images
+          ansible.builtin.fail:
+            msg: >-
+              No record of the pre-pulled images at {{ images_record }}; the
+              element writes it during the build.
+          when: not images_record_stat.stat.exists
+
+        # refs rejects every reference outside [A-Za-z0-9._/:-]+@sha256:<hex>,
+        # so the references are safe to use in the arguments and paths below.
+        - name: Validate the record and list the image references
+          ansible.builtin.command:
+            argv:
+              - python3
+              - "{{ project_dir }}/scripts/build-sbom.py"
+              - refs
+              - "{{ images_record }}"
+          register: refs_result
+          changed_when: false
+
+        - name: Read the checksum of the built image
+          ansible.builtin.slurp:
+            src: "{{ image_path }}.CHECKSUM"
+          register: checksum_file
+
+        - name: Keep the sha256 of the built image
+          ansible.builtin.set_fact:
+            image_sha256: "{{ (checksum_file.content | b64decode).split() | first | default('') }}"
+
+        - name: Validate the sha256 of the built image
+          ansible.builtin.assert:
+            that:
+              - image_sha256 is match('^[0-9a-f]{64}$')
+            fail_msg: >-
+              {{ image_path }}.CHECKSUM does not start with a sha256
+              (image_sha256={{ image_sha256 }}).
+
+        # The loop driver mounts raw images only; the published qcow2 is just read.
+        - name: Convert the artifact to a disposable raw copy
+          ansible.builtin.command:
+            argv:
+              - qemu-img
+              - convert
+              - -f
+              - qcow2
+              - -O
+              - raw
+              - "{{ image_path }}"
+              - "{{ run_dir }}/image.raw"
+          changed_when: true
+
+        # Same lookup as playbooks/validate.yml: the root partition is found by
+        # DIB's root label rather than its index, and ro,noload never replays
+        # the journal, so nothing is written. Nothing is executed inside the
+        # image, so /dev and /proc are not mounted into it.
+        - name: Mount the unbooted root filesystem read-only
+          ansible.builtin.shell:
+            executable: /bin/bash
+            cmd: |
+              set -euo pipefail
+              raw="{{ run_dir }}/image.raw"
+              root="{{ run_dir }}/root"
+              offset=""
+              while read -r start; do
+                  label="$(blkid -p -O "$(( start * 512 ))" -s LABEL -o value "${raw}" || true)"
+                  if [ "${label}" = "cloudimg-rootfs" ]; then
+                      offset="$(( start * 512 ))"
+                  fi
+              done < <(partx --show --noheadings --output START "${raw}")
+              if [ -z "${offset}" ]; then
+                  echo "no cloudimg-rootfs partition found in ${raw}" >&2
+                  exit 1
+              fi
+              mount -o ro,noload,loop,offset="${offset}" "${raw}" "${root}"
+          become: true
+          changed_when: true
+
+        # Ties the build-time record to the artifact: every recorded digest
+        # must be a blob in the content store of the image that is scanned.
+        - name: Look up each recorded image in the containerd content store
+          ansible.builtin.stat:
+            path: "{{ run_dir }}/root/var/lib/containerd/io.containerd.content.v1.content/blobs/sha256/{{ item | regex_replace('^.*@sha256:', '') }}"
+            get_checksum: false
+          loop: "{{ refs_result.stdout_lines }}"
+          become: true
+          register: image_blobs
+
+        - name: Assert every recorded image is in the containerd content store
+          ansible.builtin.assert:
+            that:
+              - item.stat.exists
+            fail_msg: >-
+              {{ item.item }} is recorded as pre-pulled, but its manifest is not
+              in the image's containerd content store.
+          loop: "{{ image_blobs.results }}"
+          loop_control:
+            label: "{{ item.item }}"
+
+        # The exclude keeps the unpacked image layers out of the host component
+        # list, where syft would label their Debian packages as packages of the
+        # Ubuntu base. SYFT_FILE_METADATA_SELECTION=none drops the per-file
+        # components, which are most of syft's default output and add no
+        # package information. The format is pinned to CycloneDX 1.6 because
+        # this syft version writes 1.7 by default.
+        - name: Scan the root filesystem for packages and Go binaries
+          ansible.builtin.command:
+            argv:
+              - "{{ run_dir }}/syft"
+              - scan
+              - "dir:{{ run_dir }}/root"
+              - --exclude
+              - "./var/lib/containerd/**"
+              - -o
+              - "cyclonedx-json@1.6={{ run_dir }}/host.cdx.json"
+              - -q
+          environment: &syft_environment
+            SYFT_CHECK_FOR_APP_UPDATE: "false"
+            SYFT_FILE_METADATA_SELECTION: none
+          become: true
+          changed_when: true
+
+        # The digest pins the content, so the scan sees the bytes the build
+        # pulled. An unreachable registry makes syft exit 1, and timeout(1)
+        # ends a scan whose registry connection stalls; both are retried. The
+        # task keyword `timeout` is not used because Ansible does not retry a
+        # task it timed out. The loop goes on after an image has used up its
+        # retries, so the limit is sized for the worst case: a scan takes
+        # seconds, and with 120 seconds a registry that stalls every scan
+        # costs 4 x 120 + 3 x 15 seconds per image (the first attempt and
+        # three retries), which keeps the play within the job timeout in
+        # .zuul.yaml. The platform is the architecture scripts/build-sbom.py
+        # writes into the purl of each image (IMAGE_ARCH); change both
+        # together.
+        - name: Scan each pre-pulled image by digest
+          ansible.builtin.command:
+            argv:
+              - timeout
+              - "120"
+              - "{{ run_dir }}/syft"
+              - scan
+              - "registry:{{ item }}"
+              - --platform
+              - linux/amd64
+              - -o
+              - "cyclonedx-json@1.6={{ run_dir }}/images/{{ item | regex_replace('^.*@sha256:', '') }}.cdx.json"
+              - -q
+          environment: *syft_environment
+          loop: "{{ refs_result.stdout_lines }}"
+          register: image_scan
+          until: image_scan is succeeded
+          retries: 3
+          delay: 15
+          changed_when: true
+
+        - name: Merge the scans into the image SBOM
+          ansible.builtin.command:
+            argv:
+              - python3
+              - "{{ project_dir }}/scripts/build-sbom.py"
+              - merge
+              - --host-bom
+              - "{{ run_dir }}/host.cdx.json"
+              - --images
+              - "{{ images_record }}"
+              - --image-boms
+              - "{{ run_dir }}/images"
+              - --name
+              - "{{ image_basename }}.qcow2"
+              - --version
+              - "{{ kubernetes_semver }}"
+              - --sha256
+              - "{{ image_sha256 }}"
+              - --output
+              - "{{ sbom_path }}"
+          changed_when: true
+
+        # The series image is a hard link of the versioned image, so both
+        # names carry the same SBOM; metadata.component.name is the versioned
+        # file name in both.
+        - name: Copy the SBOM to the series name and the job logs
+          ansible.builtin.copy:
+            src: "{{ sbom_path }}"
+            dest: "{{ item }}"
+            remote_src: true
+            mode: "0644"
+          loop:
+            - "{{ series_sbom_path }}"
+            - "{{ ansible_user_dir }}/zuul-output/logs/sbom-{{ image_basename }}.cdx.json"
+
+        # The scans can succeed and still miss a group of software the SBOM
+        # documents, for example after a syft bump. The checks look at the
+        # top-level components, which are the ones of the host scan: a
+        # package of the dpkg database, the Go modules of the binaries
+        # installed outside dpkg, and nothing from the unpacked image layers,
+        # which the purl cannot tell apart from the base (see the exclude
+        # above). The copy in the job logs stays when a check fails.
+        - name: Read the SBOM
+          ansible.builtin.slurp:
+            src: "{{ sbom_path }}"
+          register: sbom_file
+          no_log: true
+
+        - name: Assert the SBOM lists the software it documents
+          ansible.builtin.assert:
+            that:
+              - purls | select('match', '^pkg:deb/[^/]+/kubelet@') | list | length > 0
+              - purls | select('match', '^pkg:golang/') | list | length > 0
+              - locations | select('match', '^/var/lib/containerd/') | list | length == 0
+            fail_msg: >-
+              {{ sbom_path }} does not list the kubelet package or any Go
+              module, or it lists a package from /var/lib/containerd at the
+              top level.
+          vars:
+            components: "{{ (sbom_file.content | b64decode | from_json).components }}"
+            purls: "{{ components | selectattr('purl', 'defined') | map(attribute='purl') | list }}"
+            locations: >-
+              {{ components | selectattr('properties', 'defined') | map(attribute='properties') | flatten
+                 | selectattr('name', 'match', '^syft:location:[0-9]+:path$') | map(attribute='value') | list }}
+
+        - name: Record that the SBOM was generated
+          ansible.builtin.set_fact:
+            sbom_ok: true
+
+      rescue:
+        - name: Show the task that failed the SBOM generation
+          ansible.builtin.debug:
+            msg:
+              - "Failed task: {{ ansible_failed_task.name }}"
+              - "{{ ansible_failed_result }}"
+
+        - name: Remove a partially written SBOM
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: absent
+          loop:
+            - "{{ sbom_path }}"
+            - "{{ series_sbom_path }}"
+
+        - name: Record that the SBOM generation failed
+          ansible.builtin.set_fact:
+            sbom_ok: false
+
+      always:
+        # Not best effort: the run directory is deleted next, and that must
+        # never descend into a still-mounted image.
+        - name: Unmount the unbooted root filesystem
+          ansible.builtin.shell:
+            executable: /bin/bash
+            cmd: |
+              set -euo pipefail
+              root="{{ run_dir }}/root"
+              if mountpoint -q "${root}"; then
+                  umount --recursive "${root}"
+              fi
+          become: true
+          changed_when: true
+
+        # Best effort: the node is single-use, and a leftover must not keep the
+        # upload tasks below from running.
+        - name: Remove the raw copy and the scan results
+          ansible.builtin.file:
+            path: "{{ run_dir }}"
+            state: absent
+          failed_when: false
+
+    # Publish runs only. An SBOM is uploaded only next to the image it
+    # describes. The versioned image is create-once, so the published one may
+    # stem from an earlier build. This play cannot see build.yml's
+    # image_already_published fact; comparing the published checksum with the
+    # hash of this build answers the question for both names. The comparison
+    # and the upload are separate requests: the semaphore of the publish job
+    # in .zuul.yaml keeps another publish run of the series from replacing an
+    # image between the two. build.yml has found or uploaded both CHECKSUM
+    # files, so anything but 200 is an error here.
+    - name: Publish the SBOM to the object storage
+      when:
+        - upload_image | default(false) | bool
+        - sbom_ok | bool
+      block:
+        - name: Read the published checksum of the series and the versioned image
+          ansible.builtin.uri:
+            url: "{{ bucket_url }}/{{ item.key }}.CHECKSUM"
+            return_content: true
+          loop:
+            - {key: "{{ series_image_key }}", sbom: "{{ series_sbom_path }}"}
+            - {key: "{{ versioned_image_key }}", sbom: "{{ sbom_path }}"}
+          loop_control:
+            label: "{{ item.key }}"
+          register: published_checksums
+          until: published_checksums is succeeded
+          retries: 3
+          delay: 10
+
+        - name: Validate the published checksums
+          ansible.builtin.assert:
+            that:
+              - (item.content.split() | first | default('')) is match('^[0-9a-f]{64}$')
+            fail_msg: "{{ item.item.key }}.CHECKSUM in the object storage does not start with a sha256."
+          loop: "{{ published_checksums.results }}"
+          loop_control:
+            label: "{{ item.item.key }}"
+
+        - name: Publish the SBOM next to each published image that is this build
+          ansible.builtin.command:
+            argv:
+              - rclone
+              - copyto
+              - "{{ item.item.sbom }}"
+              - "{{ bucket_remote }}/{{ item.item.key }}.cdx.json"
+          environment:
+            RCLONE_CONFIG: "{{ project_dir }}/.rclone.conf"
+          loop: "{{ published_checksums.results }}"
+          loop_control:
+            label: "{{ item.item.key }}"
+          when: (item.content.split() | first) == image_sha256
+          changed_when: true
+
+        # The upload under the series name overwrites an SBOM that the removal
+        # above left in the object storage. The series name is the first item
+        # of the loop.
+        - name: Record that this run replaced the series SBOM
+          ansible.builtin.set_fact:
+            series_sbom_replaced: true
+          when: (published_checksums.results[0].content.split() | first) == image_sha256
+
+        - name: Note each published image that gets no SBOM from this build
+          ansible.builtin.debug:
+            msg: >-
+              {{ item.item.key }} in the object storage is another build
+              (sha256 {{ item.content.split() | first }}, this build
+              {{ image_sha256 }}); it gets no SBOM from this one.
+          loop: "{{ published_checksums.results }}"
+          loop_control:
+            label: "{{ item.item.key }}"
+          when: (item.content.split() | first) != image_sha256
+
+    # A failed removal is no failure once the upload has replaced the series
+    # SBOM. Checked before the result of the generation, whose message is only
+    # right when the stale series SBOM is gone.
+    - name: Fail the job if the stale series SBOM was neither removed nor replaced
+      ansible.builtin.assert:
+        that:
+          - (stale_series_sbom_removed | default(true) | bool) or (series_sbom_replaced | default(false) | bool)
+        fail_msg: >-
+          The series SBOM of the previous build could not be removed from the
+          object storage; the failed task is printed above. SBOM generation
+          {{ 'succeeded' if sbom_ok | default(false) | bool else 'failed' }}
+          for {{ image_basename }}. This run did not upload its SBOM to
+          {{ series_image_key }}.cdx.json, so an SBOM there describes the
+          previous build.
+
+    - name: Fail the job if the SBOM was not generated
+      ansible.builtin.assert:
+        that:
+          - sbom_ok | default(false) | bool
+        fail_msg: >-
+          SBOM generation failed for {{ image_basename }}; the failed task is
+          printed above. A publish run has already uploaded the image, which is
+          now published without an SBOM.
+        success_msg: "SBOM generated for {{ image_basename }}."
