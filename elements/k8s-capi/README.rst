@@ -163,6 +163,18 @@ environment (overlayfs/cgroup constraints), the documented fallback is to pull
 the images on first boot via a ``systemd`` oneshot instead. That fallback is not
 implemented here; the in-chroot pre-pull is the default.
 
+The names of the pulled images exist only in containerd's database. While the
+build-time ``containerd`` still runs, ``wrapper.yml`` therefore writes the output
+of ``crictl images -o json`` to
+``/etc/dib-manifests/k8s-capi-container-images.json``. The directory belongs to
+DIB's ``manifests`` element, which ``element-deps`` lists: the element keeps the
+file in the image, owned by root with mode ``0600``, and copies it to
+``<image name>.d/dib-manifests/`` on the build host. ``playbooks/sbom.yml`` reads
+the build-host copy; it is the source of the image names in the SBOM (see
+"Software bill of materials" in the repository ``README.md``). A failed listing
+does not fail the image build. It leaves no record, and ``playbooks/sbom.yml``
+fails for that image.
+
 Reverse path filtering on Resolute
 ==================================
 

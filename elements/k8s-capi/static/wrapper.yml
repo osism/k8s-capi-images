@@ -5,11 +5,13 @@
 # -- node (which pulls in setup) -> providers -> containerd -> kubernetes ->
 # sysprep -- so the roles are reused unchanged rather than reimplemented.
 #
-# It differs from node.yml in two places. First, the manual containerd start/stop
+# It differs from node.yml in three places. First, the manual containerd start/stop
 # bracket around the kubernetes role: the chroot has no running systemd, so
 # containerd is launched by hand for the kubeadm offline image pre-pull and
 # stopped afterwards. Second, a repeat of the node role's rp_filter write on
 # Ubuntu >= 26, where the role's own write lands in a file systemd no longer reads.
+# Third, the record of the pre-pulled images in /etc/dib-manifests, which the
+# SBOM of the image is built from.
 # node.yml's optional, gated-off includes (custom roles, load_additional_components,
 # ecr_credential_provider) are dropped because their variables are not loaded.
 ---
@@ -78,6 +80,39 @@
         - name: Include kubernetes role
           ansible.builtin.include_role:
             name: kubernetes
+
+        # The names of the pre-pulled images exist only in containerd's bolt
+        # database, which no SBOM tool reads from an unbooted disk, so they are
+        # listed here while containerd still runs. The listing is non-fatal: a
+        # failure in this block enters the rescue below and fails the image
+        # build, and a missing SBOM input must not do that. Without the record
+        # playbooks/sbom.yml fails later, after the image is built.
+        - name: List the pre-pulled images for the SBOM
+          ansible.builtin.command:
+            cmd: crictl --runtime-endpoint unix:///var/run/containerd/containerd.sock images -o json
+          register: prepulled_images
+          changed_when: false
+          failed_when: false
+        # ansible-core 2.18 parses content that looks like JSON and writes it
+        # back on a single line, so the record is not byte-identical to
+        # crictl's output. It holds the same data, which is all
+        # scripts/build-sbom.py reads.
+        - name: Record the pre-pulled images in the DIB manifest directory
+          ansible.builtin.copy:
+            dest: /etc/dib-manifests/k8s-capi-container-images.json
+            content: "{{ prepulled_images.stdout }}\n"
+            mode: "0600"
+          when: prepulled_images.rc == 0
+        # A command that cannot be started reports its error in msg, with an
+        # empty stderr.
+        - name: Show why the pre-pulled images could not be listed
+          ansible.builtin.debug:
+            msg: >-
+              crictl images failed with rc {{ prepulled_images.rc }}. The image
+              is built without the record of its pre-pulled images, and
+              playbooks/sbom.yml will fail for it. crictl reported:
+              {{ prepulled_images.stderr | default(prepulled_images.msg | default(''), true) }}
+          when: prepulled_images.rc != 0
       rescue:
         # The kubeadm pre-pull talks to the build-time containerd over its
         # socket; when it fails (for example because the CRI plugin did not
