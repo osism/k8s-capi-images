@@ -1,4 +1,6 @@
 {
+    "debian_release": "trixie",
+    "debian_version": "13",
     "kubernetes_deb_version": "1.37.1-1.1",
     "kubernetes_semver": "v1.37.1",
     "kubernetes_series": "v1.37",

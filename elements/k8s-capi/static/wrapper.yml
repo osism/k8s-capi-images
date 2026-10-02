@@ -5,11 +5,13 @@
 # -- node (which pulls in setup) -> providers -> containerd -> kubernetes ->
 # sysprep -- so the roles are reused unchanged rather than reimplemented.
 #
-# It differs from node.yml in two places. First, the manual containerd start/stop
-# bracket around the kubernetes role: the chroot has no running systemd, so
-# containerd is launched by hand for the kubeadm offline image pre-pull and
-# stopped afterwards. Second, a repeat of the node role's rp_filter write on
-# Ubuntu >= 26, where the role's own write lands in a file systemd no longer reads.
+# It differs from node.yml in three places. First, the manual containerd
+# start/stop bracket around the kubernetes role: the chroot has no running
+# systemd, so containerd is launched by hand for the kubeadm offline image
+# pre-pull and stopped afterwards. Second, a repeat of the node role's rp_filter
+# write on Ubuntu >= 26, where the role's own write lands in a file systemd no
+# longer reads, and on Debian, where the role skips it. Third, on Debian the
+# providers role is included with a package list that Debian 13 can install.
 # node.yml's optional, gated-off includes (custom roles, load_additional_components,
 # ecr_credential_provider) are dropped because their variables are not loaded.
 ---
@@ -25,12 +27,18 @@
     - name: Include node role
       ansible.builtin.include_role:
         name: node
-    # The node role persists net.ipv4.conf.all.rp_filter=1 without passing its
-    # own sysctl_conf_file, so the value lands in /etc/sysctl.conf. systemd 259
-    # on Ubuntu 26.04 no longer reads that file, and the image boots with the
-    # rp_filter=2 from procps' /usr/lib/sysctl.d/55-network-security.conf.
-    # Write the value where sysctl_conf_file points on Ubuntu >= 26. Nothing is
-    # applied live: in the chroot /proc/sys is the build host's.
+    # The node role persists net.ipv4.conf.all.rp_filter=1 on Ubuntu only, and
+    # without passing its own sysctl_conf_file, so the value lands in
+    # /etc/sysctl.conf. systemd 259 on Ubuntu 26.04 no longer reads that file,
+    # and the image boots with the rp_filter=2 from procps'
+    # /usr/lib/sysctl.d/55-network-security.conf. On Debian the role skips the
+    # task, and Debian 13's /usr/lib/sysctl.d/50-default.conf sets
+    # net.ipv4.conf.*.rp_filter = 2 and leaves "all" at the kernel default.
+    # Write the value to /etc/sysctl.d/99-sysctl.conf on Ubuntu >= 26 and, for
+    # parity with the Ubuntu image, on Debian. Nothing is applied live: in the
+    # chroot /proc/sys is the build host's. The task can go once the role's
+    # rp_filter task also runs on Debian and passes
+    # sysctl_file: "{{ sysctl_conf_file }}", and the pin moves past that change.
     - name: Persist strict reverse packet filtering where systemd reads it
       ansible.posix.sysctl:
         name: net.ipv4.conf.all.rp_filter
@@ -39,12 +47,34 @@
         sysctl_file: /etc/sysctl.d/99-sysctl.conf
         sysctl_set: false
         reload: false
-      when:
-        - ansible_facts['distribution'] == "Ubuntu"
-        - ansible_facts['distribution_major_version'] | int >= 26
+      when: >-
+        (ansible_facts['distribution'] == "Ubuntu"
+          and ansible_facts['distribution_major_version'] | int >= 26)
+        or ansible_facts['distribution'] == "Debian"
     - name: Include providers role
       ansible.builtin.include_role:
         name: providers
+      when: ansible_facts['distribution'] != "Debian"
+    # The providers role's openstack tasks install cloud-init,
+    # cloud-guest-utils, cloud-initramfs-copymods and cloud-initramfs-dyn-netconf
+    # from a task-level "packages" var, and Debian 13 has no
+    # cloud-initramfs-copymods. An extra var cannot replace the list: the
+    # kubernetes role's "Install Kubernetes" task uses a task-level var of the
+    # same name, and an extra var would replace its kubelet/kubeadm/kubectl list
+    # too. Include-role vars outrank task vars inside the included role and do
+    # not reach other roles; no other providers task on the openstack path reads
+    # "packages". The Debian include can go once providers/tasks/openstack.yml
+    # stops requiring cloud-initramfs-copymods on Debian and the pin moves past
+    # that change.
+    - name: Include providers role without cloud-initramfs-copymods on Debian
+      ansible.builtin.include_role:
+        name: providers
+      vars:
+        packages:
+          - cloud-init
+          - cloud-guest-utils
+          - cloud-initramfs-dyn-netconf
+      when: ansible_facts['distribution'] == "Debian"
     - name: Include containerd role
       ansible.builtin.include_role:
         name: containerd

@@ -30,6 +30,9 @@
       -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
       -o BatchMode=yes -o ConnectTimeout=15
     project_dir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}"
+    # The VM login is the image's cloud-init default user, which is named
+    # after the distro: ubuntu on Ubuntu, debian on Debian.
+    vm_user: "{{ image_os }}"
 
   tasks:
     # kubernetes_version is a job var an untrusted Zuul change can redefine via
@@ -44,17 +47,40 @@
           Refusing to validate: kubernetes_version must contain only
           [A-Za-z0-9._-] (kubernetes_version={{ kubernetes_version | default('v1.33') }}).
 
-    - name: Resolve the override file for this build
+    # image_os is a job var as well. It names the image, the goss section and
+    # the VM login user, so it is guarded the same way.
+    - name: Validate the image OS build input
+      ansible.builtin.assert:
+        that:
+          - image_os | default('ubuntu') in ['ubuntu', 'debian']
+        fail_msg: >-
+          Refusing to validate: image_os must be ubuntu or debian
+          (image_os={{ image_os | default('ubuntu') }}).
+
+    - name: Resolve the override file and the image OS for this build
       ansible.builtin.set_fact:
         override_file: "overrides/{{ kubernetes_version | default('v1.33') }}.json"
+        image_os: "{{ image_os | default('ubuntu') }}"
 
-    # Same derivation as playbooks/build.yml: the Ubuntu base of a series is
-    # part of its override file (2404 for noble, 2604 for resolute).
+    - name: Load the override file
+      ansible.builtin.set_fact:
+        override_data: "{{ lookup('file', playbook_dir ~ '/../' ~ override_file) | from_json }}"
+
+    - name: Check that the override file names a base for the image OS
+      ansible.builtin.assert:
+        that:
+          - (image_os ~ '_version') in override_data
+        fail_msg: >-
+          Refusing to validate: {{ override_file }} has no
+          {{ image_os }}_version, so the
+          {{ kubernetes_version | default('v1.33') }} series has no
+          {{ image_os }} image.
+
+    # Same derivation as playbooks/build.yml: the base of a series is part of
+    # its override file (ubuntu 2404 or 2604, debian 13).
     - name: Derive the image basename from the override file
       ansible.builtin.set_fact:
-        image_basename: "ubuntu-{{ override_data.ubuntu_version }}-kube-{{ override_data.kubernetes_semver }}"
-      vars:
-        override_data: "{{ lookup('file', playbook_dir ~ '/../' ~ override_file) | from_json }}"
+        image_basename: "{{ image_os }}-{{ override_data[image_os ~ '_version'] }}-kube-{{ override_data.kubernetes_semver }}"
 
     - name: Validate the derived image basename
       ansible.builtin.assert:
@@ -140,6 +166,7 @@
       ansible.builtin.command:
         cmd: >-
           python3 {{ project_dir }}/scripts/render-goss-vars.py
+          --os {{ image_os }}
           {{ run_dir }}/image-builder/images/capi/packer/config
           {{ project_dir }}/{{ override_file }}
       register: goss_vars
@@ -361,7 +388,7 @@
           ansible.builtin.command:
             cmd: >-
               ssh {{ ssh_opts }} -i {{ run_dir }}/id_ed25519 -p {{ ssh_port }}
-              ubuntu@127.0.0.1 sudo cloud-init status --wait
+              {{ vm_user }}@127.0.0.1 sudo cloud-init status --wait
           register: cloudinit
           until: cloudinit.rc == 0
           retries: 60
@@ -385,14 +412,14 @@
             cmd: >-
               scp {{ ssh_opts }} -i {{ run_dir }}/id_ed25519 -P {{ ssh_port }} -r
               {{ run_dir }}/goss {{ run_dir }}/goss-bin {{ run_dir }}/vars-inline.json
-              {{ run_dir }}/run-goss.sh ubuntu@127.0.0.1:
+              {{ run_dir }}/run-goss.sh {{ vm_user }}@127.0.0.1:
           changed_when: true
 
         - name: Run goss validation inside the VM
           ansible.builtin.command:
             cmd: >-
               ssh {{ ssh_opts }} -i {{ run_dir }}/id_ed25519 -p {{ ssh_port }}
-              ubuntu@127.0.0.1 bash run-goss.sh
+              {{ vm_user }}@127.0.0.1 bash run-goss.sh
           register: goss_result
           failed_when: false
           changed_when: false

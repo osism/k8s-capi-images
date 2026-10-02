@@ -5,7 +5,9 @@ k8s-capi
 A diskimage-builder element that reproduces the Cluster API (CAPI)
 ``ubuntu-XXXX-kube-vX.YY`` images locally without Packer. The Ubuntu base is
 chosen per Kubernetes series through ``DIB_RELEASE``; 24.04 (``noble``) and
-26.04 (``resolute``) are in use. Instead of reimplementing the provisioning in
+26.04 (``resolute``) are in use. From v1.37 on, the element also builds
+``debian-13-kube-vX.YY`` images on Debian 13 (``trixie``), see `Debian`_.
+Instead of reimplementing the provisioning in
 Bash, it fetches
 `kubernetes-sigs/image-builder <https://github.com/kubernetes-sigs/image-builder>`_
 at a pinned git ref and runs image-builder's *original* Ansible roles
@@ -40,12 +42,14 @@ Both inputs are environment variables (see ``environment.d/10-k8s-capi.bash``):
   loudly if it is unset or points at a missing file.
 
 ``DIB_RELEASE``
-  DIB's own variable for the Ubuntu codename to build on. The element cannot
-  set it (DIB's ``ubuntu`` element reads it before any hook of this element
-  runs), but ``extra-data.d`` fails the build unless it matches the
-  ``ubuntu_release`` of the selected override. Without that check a build
-  started without ``DIB_RELEASE`` would silently fall back to DIB's default
-  (``noble``) and install the series' Kubernetes packages on the wrong base.
+  DIB's own variable for the Ubuntu or Debian codename to build on. The
+  element cannot set it (DIB's ``ubuntu`` and ``debian`` elements read it
+  before any hook of this element runs), but ``extra-data.d`` fails the build
+  unless it matches the ``<distro>_release`` (``ubuntu_release`` or
+  ``debian_release``) of the selected override, where ``<distro>`` is DIB's
+  ``DISTRO_NAME``. Without that check a build started without ``DIB_RELEASE``
+  would silently fall back to DIB's default (``noble``, ``stable``) and install
+  the series' Kubernetes packages on the wrong base.
 
 Usage
 =====
@@ -60,11 +64,22 @@ root, which sets the inputs and invokes::
 with ``DIB_RELEASE`` set to the Ubuntu codename of the series (``noble`` or
 ``resolute``). ``build-local.sh`` reads it from the override file.
 
+``build-local.sh v1.37 debian`` builds the Debian image of the series::
+
+    disk-image-create -a amd64 -t qcow2 \
+        -o output/debian-13-kube-v1.37.0 \
+        debian vm growroot openssh-server k8s-capi
+
+with ``DIB_RELEASE=trixie`` and ``DIB_DEBOOTSTRAP_EXTRA_ARGS=--force-check-gpg``
+(see `Archive signature check`_).
+
 How it works
 ============
 
 ``extra-data.d/10-fetch-image-builder`` (outside the chroot)
-  Checks ``DIB_RELEASE`` against the override's ``ubuntu_release``, then clones
+  Checks ``DIB_RELEASE`` against the override's ``<distro>_release`` for DIB's
+  ``DISTRO_NAME`` (``ubuntu`` or ``debian``; any other value, and a missing key,
+  fails the build), then clones
   image-builder at ``DIB_K8S_IMAGE_BUILDER_REF`` and stages, under
   ``$TMP_HOOKS_PATH/image-builder`` (visible as ``/tmp/in_target.d/image-builder``
   in the chroot): the ``ansible/`` tree and ``ansible.cfg``, the
@@ -85,7 +100,8 @@ How it works
   the DIB files restores the stock Ubuntu list (``90_dpkg.cfg``) that the
   Packer-built images ship, so ``ds-identify`` selects the datasource from DMI
   and the attached drive again. The hook fails the build if any other file
-  still restricts the list.
+  still restricts the list. On Debian there is nothing to remove: DIB's
+  ``debian`` element does not depend on ``cloud-init-datasources``.
 
 ``install.d/50-install-ansible`` (in the chroot)
   Builds a throwaway virtualenv with the ``ansible-core`` version image-builder
@@ -101,7 +117,8 @@ How it works
   override. ``ansible_python_interpreter`` is pinned to the venv interpreter:
   ansible-core 2.18's discovery only probes up to ``python3.13``, so on
   Resolute (Python 3.14) it would fall back to ``/usr/bin/python3``, where
-  ``python-debian`` is missing and ``deb822_repository`` fails.
+  ``python-debian`` is missing and ``deb822_repository`` fails. On Debian it
+  also passes the extra vars described in `Debian`_.
 
 ``finalise.d/40-update-apt-for-bootloader`` (in the chroot)
   Runs ``apt-get update`` before DIB's ``bootloader`` element installs grub.
@@ -173,6 +190,86 @@ the ``2`` that procps ships in ``/usr/lib/sysctl.d/55-network-security.conf``.
 Upstream's goss spec expects ``1`` and catches this once the image is booted
 (see "Validating images" in the repository ``README.md``). ``wrapper.yml``
 therefore writes the same value to ``/etc/sysctl.d/99-sysctl.conf`` on Ubuntu
-26.04 and newer, the file ``sysctl_conf_file`` names there. The task can go once
-the role's ``rp_filter`` task passes ``sysctl_file: "{{ sysctl_conf_file }}"``
-and ``DIB_K8S_IMAGE_BUILDER_REF`` moves past that change.
+26.04 and newer, the file ``sysctl_conf_file`` names there, and on Debian (see
+`Debian`_). The task can go once the role's ``rp_filter`` task passes
+``sysctl_file: "{{ sysctl_conf_file }}"`` and ``DIB_K8S_IMAGE_BUILDER_REF``
+moves past that change.
+
+Debian
+======
+
+image-builder has no Debian build target
+(`kubernetes-sigs/image-builder#2019 <https://github.com/kubernetes-sigs/image-builder/issues/2019>`_),
+and the roles run here contain Ubuntu-only steps. The element closes each gap
+with a scoped workaround and never edits the cloned roles. Each workaround can
+go once the named upstream change is in the pinned
+``DIB_K8S_IMAGE_BUILDER_REF``.
+
+a. Virtualization packages. On amd64 the setup role installs
+   ``common_virt_debs``, which names Ubuntu's ``linux-cloud-tools-virtual`` and
+   ``linux-tools-virtual`` metapackages. Debian 13 has neither, so
+   ``install.d/60-run-image-builder`` passes ``common_virt_debs`` as
+   ``hyperv-daemons``, ``linux-perf`` and ``open-vm-tools``, Debian's packages
+   for the same Hyper-V daemons and perf tools. ``hyperv-daemons`` is required:
+   the providers role disables ``hv-kvp-daemon``, and on Debian only that
+   package ships the unit. Retired once the node role's defaults name Debian
+   packages for ``common_virt_debs``.
+
+b. Kernel parameter file. The node role writes its kernel parameters to
+   ``sysctl_conf_file``, which upstream resolves to ``/etc/sysctl.conf`` on
+   Debian. systemd 257 on Debian 13 never reads that file, so the image would
+   boot without ``net.ipv4.ip_forward=1`` and the bridge-netfilter settings.
+   ``install.d/60`` passes ``sysctl_conf_file: /etc/sysctl.d/99-sysctl.conf``.
+   Retired once the node role's defaults resolve ``sysctl_conf_file`` to that
+   file on Debian.
+
+c. cloud-init packages. The providers role's openstack tasks install
+   ``cloud-initramfs-copymods``, which Debian 13 does not have, from a
+   task-level ``packages`` var. An extra var would also replace the package
+   list of the kubernetes role's "Install Kubernetes" task, which uses the same
+   name, so ``wrapper.yml`` includes the providers role on Debian with
+   ``packages`` (``cloud-init``, ``cloud-guest-utils``,
+   ``cloud-initramfs-dyn-netconf``) as an include-role var. It outranks the
+   task var inside that role and does not reach other roles. Retired once
+   ``providers/tasks/openstack.yml`` stops requiring
+   ``cloud-initramfs-copymods`` on Debian.
+
+d. Reverse path filtering. The node role sets ``net.ipv4.conf.all.rp_filter``
+   to ``1`` on Ubuntu only, and Debian 13's
+   ``/usr/lib/sysctl.d/50-default.conf`` sets ``net.ipv4.conf.*.rp_filter = 2``
+   and leaves ``all`` at the kernel default. For parity with the Ubuntu image,
+   ``wrapper.yml`` writes ``1`` to ``/etc/sysctl.d/99-sysctl.conf`` on Debian as
+   well (see `Reverse path filtering on Resolute`_). Retired once the role's
+   task also runs on Debian and passes ``sysctl_file``.
+
+``package-installs.yaml`` adds ``netplan.io`` on Debian. DIB's ``debian``
+element installs it only when ``DIB_RELEASE`` is ``bookworm``, ``stable`` or
+``testing``, and DIB disables apt recommends, so a ``trixie`` build would ship
+neither netplan.io nor ifupdown. With it, cloud-init renders netplan and
+systemd-networkd brings up the interfaces, as on the Ubuntu images, and the
+providers role's networkd-dispatcher hooks for DHCP-provided NTP servers work.
+The entry can go once DIB's ``debian/install.d/10-cloud-opinions`` installs
+``netplan.io`` for ``trixie``.
+
+``finalise.d/999-ensure-machine-id`` also covers the missing
+``/etc/machine-id`` on Debian (kubernetes-sigs/image-builder#2164).
+
+Archive signature check
+-----------------------
+
+DIB's ``debian-minimal`` builds the root filesystem with debootstrap on the
+build host. Without ``debian-archive-keyring`` there, debootstrap only warns
+(``W: Cannot check Release signature; keyring file not available``) and
+continues unverified. Debian builds therefore set
+``DIB_DEBOOTSTRAP_EXTRA_ARGS=--force-check-gpg``, and a missing keyring aborts
+the build with ``E: Keyring-based check was requested; aborting accordingly``.
+``playbooks/pre.yml`` installs the keyring on the CI build host.
+
+Ubuntu 24.04's ``debian-archive-keyring`` verifies trixie's ``InRelease``
+through the Debian 12 archive key. Once Debian stops co-signing trixie with
+that key after Debian 14's release, this keyring can no longer verify it and
+the Debian build fails with the same ``E:`` line. The remedy is a newer
+``debian-archive-keyring`` on the build host.
+
+``DIB_APT_KEYRING`` is not used: ``debian-minimal`` pipes that keyring into
+``apt-key`` inside the chroot, and Debian 13 has no ``apt-key``.
