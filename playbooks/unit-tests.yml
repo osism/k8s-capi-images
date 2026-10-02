@@ -1,0 +1,10 @@
+---
+- name: Run the unit tests of the scripts
+  hosts: all
+
+  tasks:
+    - name: Run the unit tests
+      ansible.builtin.command:
+        cmd: python3 -m unittest discover -s tests -v
+        chdir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}"
+      changed_when: false
