@@ -56,10 +56,10 @@ workflow; the published versioned image follows with the next publish run.
 
 | Series         | Version  | Series Image (latest build)                                                                                                                                                       | Pointer (fixed version)                                                                              | End of Life |
 |----------------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------|-------------|
-| v1.37          | v1.37.1  | [ubuntu-2604-kube-v1.37.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2604-kube-v1.37/ubuntu-2604-kube-v1.37.qcow2) ([CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2604-kube-v1.37/ubuntu-2604-kube-v1.37.qcow2.CHECKSUM))                                     | [last-1.37](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.37)                   | 2027-10-28  |
-| v1.36          | v1.36.5  | [ubuntu-2404-kube-v1.36.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.36/ubuntu-2404-kube-v1.36.qcow2) ([CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.36/ubuntu-2404-kube-v1.36.qcow2.CHECKSUM))                                     | [last-1.36](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.36)                   | 2027-06-28  |
-| v1.35          | v1.35.9  | [ubuntu-2404-kube-v1.35.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.35/ubuntu-2404-kube-v1.35.qcow2) ([CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.35/ubuntu-2404-kube-v1.35.qcow2.CHECKSUM))                                     | [last-1.35](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.35)                   | 2027-02-28  |
-| v1.34          | v1.34.12 | [ubuntu-2404-kube-v1.34.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.34/ubuntu-2404-kube-v1.34.qcow2) ([CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.34/ubuntu-2404-kube-v1.34.qcow2.CHECKSUM))                                     | [last-1.34](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.34)                   | 2026-10-27  |
+| v1.37          | v1.37.1  | [ubuntu-2604-kube-v1.37.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2604-kube-v1.37/ubuntu-2604-kube-v1.37.qcow2) ([CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2604-kube-v1.37/ubuntu-2604-kube-v1.37.qcow2.CHECKSUM), [SBOM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2604-kube-v1.37/ubuntu-2604-kube-v1.37.qcow2.cdx.json))                                     | [last-1.37](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.37)                   | 2027-10-28  |
+| v1.36          | v1.36.5  | [ubuntu-2404-kube-v1.36.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.36/ubuntu-2404-kube-v1.36.qcow2) ([CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.36/ubuntu-2404-kube-v1.36.qcow2.CHECKSUM), [SBOM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.36/ubuntu-2404-kube-v1.36.qcow2.cdx.json))                                     | [last-1.36](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.36)                   | 2027-06-28  |
+| v1.35          | v1.35.9  | [ubuntu-2404-kube-v1.35.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.35/ubuntu-2404-kube-v1.35.qcow2) ([CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.35/ubuntu-2404-kube-v1.35.qcow2.CHECKSUM), [SBOM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.35/ubuntu-2404-kube-v1.35.qcow2.cdx.json))                                     | [last-1.35](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.35)                   | 2027-02-28  |
+| v1.34          | v1.34.12 | [ubuntu-2404-kube-v1.34.qcow2](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.34/ubuntu-2404-kube-v1.34.qcow2) ([CHECKSUM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.34/ubuntu-2404-kube-v1.34.qcow2.CHECKSUM), [SBOM](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.34/ubuntu-2404-kube-v1.34.qcow2.cdx.json))                                     | [last-1.34](https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/last-1.34)                   | 2026-10-27  |
 
 The versioned images live next to the series image, for example
 `ubuntu-2404-kube-v1.36/ubuntu-2404-kube-v1.36.4.qcow2` with its
@@ -115,19 +115,22 @@ To build an image locally on a Linux host with qemu/libguestfs:
 
 In CI, Zuul builds every series on the `check` pipeline in
 build-only mode (`upload_image: false`). On the `post` pipeline, the publish
-jobs upload the image, its `.CHECKSUM`, and the `last-X` pointer to the object
-storage. A job is triggered by changes to its override file, the element, the
-playbooks, `requirements.txt` or `.zuul.yaml`.
+jobs upload the image, its `.CHECKSUM`, its SBOM (`.cdx.json`, see
+[Software bill of materials](#software-bill-of-materials)) and the `last-X`
+pointer to the object storage. A job is triggered by changes to its override
+file, the element, the playbooks, `scripts/build-sbom.py`, `requirements.txt`
+or `.zuul.yaml`.
 
 Every publish run builds the image and uploads it under two names:
 
 - `ubuntu-XXXX-kube-vX.YY.Z.qcow2` (versioned) is create-once: the job checks
   whether its `.CHECKSUM` already exists in the object storage and, if so,
-  neither overwrites the image nor rewrites the `last-X` pointer.
+  neither overwrites the image nor rewrites the `last-X` pointer. Its
+  `.cdx.json` is uploaded only by the run that publishes the versioned image.
 - `ubuntu-XXXX-kube-vX.YY.qcow2` (series) is always overwritten together with
-  its `.CHECKSUM`, so every merged change that touches the element, the
-  playbooks or the override file ships as a fresh "latest" image of the series,
-  even when the Kubernetes version stays the same.
+  its `.CHECKSUM` and its `.cdx.json`, so every merged change that touches the
+  element, the playbooks or the override file ships as a fresh "latest" image
+  of the series, even when the Kubernetes version stays the same.
 
 ## Validating images
 
@@ -171,6 +174,65 @@ upload tasks at the tail of `playbooks/build.yml` still run before validation,
 so validation does not yet gate the upload itself. The goss JSON reports (the
 offline hygiene check and the in-VM run) and the VM console log are saved under
 `zuul-output/logs/`.
+
+## Software bill of materials
+
+Every build writes one [CycloneDX](https://cyclonedx.org/) 1.6 JSON SBOM for
+the image it built. Every publish run uploads it next to the image, under the
+image file name with `.cdx.json` appended:
+
+```text
+https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2604-kube-v1.37/ubuntu-2604-kube-v1.37.qcow2.cdx.json
+```
+
+The SBOM lists three groups of software:
+
+- the packages in the dpkg database: Ubuntu and the Kubernetes debs (kubelet,
+  kubeadm, kubectl, kubernetes-cni)
+- the Go modules of the binaries the build installs outside dpkg: containerd,
+  runc and crictl
+- every pre-pulled container image, as a component of type `container` with
+  the packages of that image nested beneath it
+
+The series SBOM and the versioned SBOM of one publish run are identical. The
+series image is the same build under its unversioned name, so both SBOMs carry
+the versioned file name in `metadata.component.name`.
+
+`metadata.component.hashes` holds the sha256 of the qcow2 the SBOM describes.
+A publish run uploads an SBOM only next to an image whose published
+`.CHECKSUM` holds that hash. An SBOM belongs to an image when that hash equals
+the hash in the image's `.CHECKSUM` file. Both commands below print the same
+value in that case:
+
+```bash
+url=https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2604-kube-v1.37/ubuntu-2604-kube-v1.37.qcow2
+curl -s "${url}.cdx.json" | jq -r '.metadata.component.hashes[0].content'
+curl -s "${url}.CHECKSUM" | cut -d ' ' -f 1
+```
+
+Some images have no SBOM:
+
+- Versioned images that were published before the build generated SBOMs have
+  none, and neither have the [archived](#archived) images. They are never
+  rebuilt, and a rebuilt image would differ from the published one.
+- A failed SBOM generation does not keep an image from being published. The
+  job fails after the upload, and the image is published without an SBOM.
+  Every publish run removes the series SBOM of the previous build from the
+  object storage before it generates the new one, so the new series image does
+  not sit next to the SBOM of another build. Until the run uploads the new
+  SBOM, the series image has none. The next successful publish run uploads a
+  series SBOM again. A versioned image whose own run failed stays without one.
+
+The SBOM is written by [syft](https://github.com/anchore/syft) in
+`playbooks/sbom.yml`, which pins the syft release by version (`syft_version`)
+and verifies it by checksum; the SBOM names that version in `metadata.tools`.
+The playbook runs between `playbooks/build.yml` and `playbooks/validate.yml`.
+syft scans a raw copy of the unbooted image, mounted read-only, and each
+pre-pulled image from its registry by digest. `scripts/build-sbom.py` merges
+the scans into one document. The job fails when that document lacks the
+kubelet package or any Go module, or lists a package of the unpacked image
+layers at the top level. Every job, check builds included, saves the SBOM in
+its logs as `sbom-<image_basename>.cdx.json`. The SBOM is not signed.
 
 ## Determining Current Versions
 
