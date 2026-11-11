@@ -104,6 +104,32 @@ cd "${STAGE}"
 # Resolute (python3.14) it silently lands on the system interpreter and
 # deb822_repository fails with "No module named 'debian'". The apt family still
 # respawns itself under /usr/bin/python3 to reach python3-apt.
+#
+# image-builder has no Debian build target (kubernetes-sigs/image-builder#2019),
+# and two node role defaults are Ubuntu-only. On Debian both are overridden in
+# one extra-var object; on Ubuntu the array stays empty and the invocation is
+# unchanged. Extra vars are safe here because only the intended places read
+# these names: the node role's meta dependency on setup reads common_virt_debs,
+# and the node role reads sysctl_conf_file.
+#
+#   * common_virt_debs names Ubuntu's linux-cloud-tools-virtual and
+#     linux-tools-virtual metapackages, which Debian 13 does not have, so the
+#     setup role fails with "No package matching 'linux-cloud-tools-virtual' is
+#     available". hyperv-daemons and linux-perf are Debian's packages for the
+#     same Hyper-V daemons and perf tools. hyperv-daemons is required: the
+#     providers role's openstack tasks disable hv-kvp-daemon, and on Debian only
+#     that package ships the unit. Drop the key once the node defaults name
+#     Debian packages for common_virt_debs and the pin moves past that change.
+#   * sysctl_conf_file resolves to /etc/sysctl.conf on Debian. systemd 257 on
+#     Debian 13 never reads that file, so the image would boot without
+#     net.ipv4.ip_forward=1 and the bridge-netfilter settings. Drop the key once
+#     the node defaults resolve sysctl_conf_file to /etc/sysctl.d/99-sysctl.conf
+#     on Debian and the pin moves past that change.
+DISTRO_EXTRA_VARS=()
+if [ "${DISTRO_NAME:-}" = debian ]; then
+    DISTRO_EXTRA_VARS=(-e '{"common_virt_debs": ["hyperv-daemons", "linux-perf", "open-vm-tools"], "sysctl_conf_file": "/etc/sysctl.d/99-sysctl.conf"}')
+fi
+
 ansible-playbook -i 'localhost,' -c local ansible/wrapper.yml \
     -e ansible_python_interpreter="${VENV}/bin/python3" \
     -e @config/common.json \
@@ -118,7 +144,8 @@ ansible-playbook -i 'localhost,' -c local ansible/wrapper.yml \
     -e kubeadm_template="${STAGE}/kubeadm.yml.j2" \
     -e packer_builder_type=openstack \
     -e packer_build_name=openstack \
-    -e 'containerd_service_url=https://raw.githubusercontent.com/containerd/containerd/refs/tags/v{{ containerd_version }}/containerd.service'
+    -e 'containerd_service_url=https://raw.githubusercontent.com/containerd/containerd/refs/tags/v{{ containerd_version }}/containerd.service' \
+    "${DISTRO_EXTRA_VARS[@]}"
 
 # image-builder's containerd role downloads containerd.service over HTTPS with no
 # checksum and installs it as the root-run containerd unit on every node. Gate the
