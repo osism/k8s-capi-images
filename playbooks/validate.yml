@@ -311,8 +311,30 @@
             cmd: cloud-localds {{ run_dir }}/seed.iso {{ run_dir }}/user-data {{ run_dir }}/meta-data
             creates: "{{ run_dir }}/seed.iso"
 
-        # pre.yml widened /dev/kvm to 0666 when the node exposes nested virt, so
-        # this normally selects fast KVM acceleration. A node without /dev/kvm
+        # qemu-system needs KVM for an acceptable boot time. On these nodes
+        # /dev/kvm is root:kvm 0660 and the build user is not in the kvm group;
+        # adding it to the group would not apply to the already-open Ansible
+        # session, so widen the device mode directly. The node is ephemeral and
+        # single-tenant, so 0666 is safe here.
+        #
+        # This must run here, right before the probe, and not in pre-run: the
+        # image build bind-mounts the host's /dev into the chroot, and a udev
+        # upgrade there runs `systemd-tmpfiles --create
+        # static-nodes-permissions.conf`, which resets the host's /dev/kvm to
+        # 0660 root:kvm (seen with udev 259.9-0ubuntu0.1 on Ubuntu 26.04).
+        - name: Check whether /dev/kvm is present
+          ansible.builtin.stat:
+            path: /dev/kvm
+          register: kvm_device
+
+        - name: Grant the build user access to /dev/kvm for the validation boot
+          become: true
+          ansible.builtin.file:
+            path: /dev/kvm
+            mode: "0666"
+          when: kvm_device.stat.exists
+
+        # This normally selects fast KVM acceleration. A node without /dev/kvm
         # falls back to TCG software emulation: much slower, but it still boots
         # and validates rather than hard-failing the build.
         - name: Probe whether the build host can use KVM acceleration

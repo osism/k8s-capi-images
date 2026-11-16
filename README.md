@@ -162,8 +162,8 @@ the unbooted image is loop-mounted read-only and goss runs in a chroot of it.
 The VM runs every other gossfile of upstream's `goss.yaml`.
 
 The image boots under QEMU with KVM acceleration where the node exposes
-`/dev/kvm` (the build host widens its permissions in `playbooks/pre.yml`),
-falling back to TCG software emulation otherwise. The goss spec is re-cloned from
+`/dev/kvm` (`playbooks/validate.yml` widens its permissions right before the
+boot), falling back to TCG software emulation otherwise. The goss spec is re-cloned from
 image-builder at the same `DIB_K8S_IMAGE_BUILDER_REF` the build uses (it is not
 vendored), and the `goss` binary is pinned to `0.3.23` and verified by checksum,
 matching how the build already pins and hashes its inputs.
