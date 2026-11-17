@@ -356,34 +356,19 @@
             - "{{ ansible_user_dir }}/zuul-output/logs/sbom-{{ image_basename }}.cdx.json"
 
         # The scans can succeed and still miss a group of software the SBOM
-        # documents, for example after a syft bump. The checks look at the
-        # top-level components, which are the ones of the host scan: a
-        # package of the dpkg database, the Go modules of the binaries
-        # installed outside dpkg, and nothing from the unpacked image layers,
-        # which the purl cannot tell apart from the base (see the exclude
-        # above). The copy in the job logs stays when a check fails.
-        - name: Read the SBOM
-          ansible.builtin.slurp:
-            src: "{{ sbom_path }}"
-          register: sbom_file
-          no_log: true
-
-        - name: Assert the SBOM lists the software it documents
-          ansible.builtin.assert:
-            that:
-              - purls | select('match', '^pkg:deb/[^/]+/kubelet@') | list | length > 0
-              - purls | select('match', '^pkg:golang/') | list | length > 0
-              - locations | select('match', '^/var/lib/containerd/') | list | length == 0
-            fail_msg: >-
-              {{ sbom_path }} does not list the kubelet package or any Go
-              module, or it lists a package from /var/lib/containerd at the
-              top level.
-          vars:
-            components: "{{ (sbom_file.content | b64decode | from_json).components }}"
-            purls: "{{ components | selectattr('purl', 'defined') | map(attribute='purl') | list }}"
-            locations: >-
-              {{ components | selectattr('properties', 'defined') | map(attribute='properties') | flatten
-                 | selectattr('name', 'match', '^syft:location:[0-9]+:path$') | map(attribute='value') | list }}
+        # documents, for example after a syft bump. build-sbom.py check looks
+        # at the top-level components (see check() there). It runs on the
+        # build node on purpose: a Jinja assert over the slurped 25 MB SBOM
+        # took ~1.3 GB and ~4 minutes per job on the Zuul executor. The copy
+        # in the job logs stays when the check fails.
+        - name: Check that the SBOM lists the software it documents
+          ansible.builtin.command:
+            argv:
+              - python3
+              - "{{ project_dir }}/scripts/build-sbom.py"
+              - check
+              - "{{ sbom_path }}"
+          changed_when: false
 
         - name: Record that the SBOM was generated
           ansible.builtin.set_fact:

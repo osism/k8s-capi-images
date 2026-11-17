@@ -13,6 +13,7 @@
 #   build-sbom.py merge --host-bom <path> --images <images_record>
 #                       --image-boms <dir> --name <name> --version <version>
 #                       --sha256 <hex> --output <path>
+#   build-sbom.py check <sbom>
 #
 #   <images_record>  the `crictl images -o json` output the k8s-capi element
 #                    records during the build
@@ -24,6 +25,11 @@
 # <dir>/<digest hex>.cdx.json. --name, --version and --sha256 describe the
 # image file in metadata.component, so a consumer can compare the hash with
 # the image's .CHECKSUM file.
+#
+# check verifies that a merged SBOM lists the software it documents (see
+# check()). It runs on the build node, so the executor never has to load the
+# SBOM: on Ansible 2.16 doing the same in a Jinja assert over a 25 MB SBOM
+# took ~1.3 GB and ~4 minutes per job on the Zuul executor.
 #
 ###############################################################################
 
@@ -40,6 +46,12 @@ from typing import Any, NamedTuple
 # name in playbooks/sbom.yml, so nothing outside this character set passes.
 REFERENCE_RE = re.compile(r"[A-Za-z0-9._/:-]+@sha256:[0-9a-f]{64}")
 SHA256_RE = re.compile(r"[0-9a-f]{64}")
+
+# Used with match (anchored at the start) on the top-level components.
+KUBELET_PURL_RE = re.compile(r"pkg:deb/[^/]+/kubelet@")
+GO_PURL_PREFIX = "pkg:golang/"
+LOCATION_PROPERTY_RE = re.compile(r"syft:location:[0-9]+:path$")
+LAYER_PATH_PREFIX = "/var/lib/containerd/"
 
 # The architecture playbooks/sbom.yml scans the pre-pulled images for
 # (--platform linux/amd64). Change both together.
@@ -211,6 +223,41 @@ def merge(args: argparse.Namespace) -> None:
         sys.exit(f"ERROR: could not write {args.output}: {err}")
 
 
+def check(args: argparse.Namespace) -> None:
+    """Verify that the SBOM at args.sbom lists the software it documents.
+
+    The scans can succeed and still miss a group of software, for example
+    after a syft bump. The checks look at the top-level components, which are
+    the ones of the host scan: a kubelet package of the dpkg database, the Go
+    modules of the binaries installed outside dpkg, and nothing from the
+    unpacked image layers under /var/lib/containerd, which playbooks/sbom.yml
+    excludes from the host scan. Exits with an error naming every check that
+    failed.
+    """
+    bom = load_bom(args.sbom)
+    components = [c for c in bom.get("components") or [] if isinstance(c, dict)]
+    purls = [str(c["purl"]) for c in components if "purl" in c]
+    locations = [
+        str(prop.get("value"))
+        for c in components
+        for prop in c.get("properties") or []
+        if isinstance(prop, dict) and LOCATION_PROPERTY_RE.match(str(prop.get("name")))
+    ]
+    layer_locations = [path for path in locations if path.startswith(LAYER_PATH_PREFIX)]
+
+    problems = []
+    if not any(KUBELET_PURL_RE.match(purl) for purl in purls):
+        problems.append("lists no kubelet package (pkg:deb/<namespace>/kubelet@) at the top level")
+    if not any(purl.startswith(GO_PURL_PREFIX) for purl in purls):
+        problems.append(f"lists no Go module ({GO_PURL_PREFIX}) at the top level")
+    if layer_locations:
+        problems.append(
+            f"lists {len(layer_locations)} top-level package(s) found under {LAYER_PATH_PREFIX}, e.g. {layer_locations[0]}"
+        )
+    if problems:
+        sys.exit(f"ERROR: {args.sbom} " + "; ".join(problems))
+
+
 def main(argv: list[str] | None = None) -> None:
     """Parse argv (default: the command line) and run the chosen subcommand."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -229,6 +276,10 @@ def main(argv: list[str] | None = None) -> None:
     merge_parser.add_argument("--sha256", required=True, type=sha256_hex, help="sha256 of the image file, 64 lowercase hex characters")
     merge_parser.add_argument("--output", required=True, help="path the SBOM is written to")
     merge_parser.set_defaults(run=merge)
+
+    check_parser = subparsers.add_parser("check", help="verify that the SBOM lists the software it documents")
+    check_parser.add_argument("sbom", help="the merged SBOM of the image")
+    check_parser.set_defaults(run=check)
 
     args = parser.parse_args(argv)
     args.run(args)

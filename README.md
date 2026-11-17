@@ -229,9 +229,9 @@ and verifies it by checksum; the SBOM names that version in `metadata.tools`.
 The playbook runs between `playbooks/build.yml` and `playbooks/validate.yml`.
 syft scans a raw copy of the unbooted image, mounted read-only, and each
 pre-pulled image from its registry by digest. `scripts/build-sbom.py` merges
-the scans into one document. The job fails when that document lacks the
-kubelet package or any Go module, or lists a package of the unpacked image
-layers at the top level. Every job, check builds included, saves the SBOM in
+the scans into one document, and its `check` subcommand fails the job when
+that document lacks the kubelet package or any Go module, or lists a package of
+the unpacked image layers at the top level. Every job, check builds included, saves the SBOM in
 its logs as `sbom-<image_basename>.cdx.json`. The SBOM is not signed.
 
 ## Determining Current Versions
