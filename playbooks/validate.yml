@@ -267,6 +267,67 @@
             state: absent
           failed_when: false
 
+    # qemu-system needs KVM for an acceptable boot time. On these nodes
+    # /dev/kvm is root:kvm 0660 and the build user is not in the kvm group;
+    # adding it to the group would not apply to the already-open Ansible
+    # session, so widen the device mode directly. The node is ephemeral and
+    # single-tenant, so 0666 is safe here.
+    #
+    # This must run here, right before the probe, and not in pre-run: the
+    # image build bind-mounts the host's /dev into the chroot, and a udev
+    # upgrade there runs `systemd-tmpfiles --create
+    # static-nodes-permissions.conf`, which resets the host's /dev/kvm to
+    # 0660 root:kvm (seen with udev 259.9-0ubuntu0.1 on Ubuntu 26.04).
+    - name: Check whether /dev/kvm is present
+      ansible.builtin.stat:
+        path: /dev/kvm
+      register: kvm_device
+
+    - name: Grant the build user access to /dev/kvm for the validation boot
+      become: true
+      ansible.builtin.file:
+        path: /dev/kvm
+        mode: "0666"
+      when: kvm_device.stat.exists
+
+    # A node without /dev/kvm (no nested virt) falls back to TCG software
+    # emulation: much slower, but it still boots and validates rather than
+    # hard-failing the build. A /dev/kvm that exists but is not accessible
+    # is a setup bug, not a missing capability, so fail instead of quietly
+    # booting under TCG, where goss commands run into their timeouts.
+    #
+    # These tasks run before the boot block on purpose: a failure here must
+    # fail the job with its own message, not go through the block's rescue,
+    # which reports it as a goss failure although goss never ran.
+    - name: Probe whether the build host can use KVM acceleration
+      ansible.builtin.command:
+        cmd: test -r /dev/kvm -a -w /dev/kvm
+      register: kvm_probe
+      changed_when: false
+      failed_when: false
+
+    - name: Fail when /dev/kvm exists but is still inaccessible
+      ansible.builtin.fail:
+        msg: >-
+          /dev/kvm exists but is not readable and writable by the build user
+          even after the grant; refusing to fall back to TCG software
+          emulation, under which goss commands run into their timeouts.
+          Something reset its permissions or the grant did not apply.
+      when:
+        - kvm_device.stat.exists
+        - kvm_probe.rc != 0
+
+    - name: Select the QEMU acceleration flags
+      ansible.builtin.set_fact:
+        qemu_accel: "{{ '-enable-kvm -cpu host' if kvm_probe.rc == 0 else '-accel tcg -cpu max' }}"
+
+    - name: Warn when falling back to software emulation
+      ansible.builtin.debug:
+        msg: >-
+          /dev/kvm is not present; booting the validation VM under TCG
+          software emulation, which is significantly slower than KVM.
+      when: kvm_probe.rc != 0
+
     - name: Boot the image and run goss validation
       block:
         - name: Create the disposable copy-on-write overlay
@@ -310,50 +371,6 @@
           ansible.builtin.command:
             cmd: cloud-localds {{ run_dir }}/seed.iso {{ run_dir }}/user-data {{ run_dir }}/meta-data
             creates: "{{ run_dir }}/seed.iso"
-
-        # qemu-system needs KVM for an acceptable boot time. On these nodes
-        # /dev/kvm is root:kvm 0660 and the build user is not in the kvm group;
-        # adding it to the group would not apply to the already-open Ansible
-        # session, so widen the device mode directly. The node is ephemeral and
-        # single-tenant, so 0666 is safe here.
-        #
-        # This must run here, right before the probe, and not in pre-run: the
-        # image build bind-mounts the host's /dev into the chroot, and a udev
-        # upgrade there runs `systemd-tmpfiles --create
-        # static-nodes-permissions.conf`, which resets the host's /dev/kvm to
-        # 0660 root:kvm (seen with udev 259.9-0ubuntu0.1 on Ubuntu 26.04).
-        - name: Check whether /dev/kvm is present
-          ansible.builtin.stat:
-            path: /dev/kvm
-          register: kvm_device
-
-        - name: Grant the build user access to /dev/kvm for the validation boot
-          become: true
-          ansible.builtin.file:
-            path: /dev/kvm
-            mode: "0666"
-          when: kvm_device.stat.exists
-
-        # This normally selects fast KVM acceleration. A node without /dev/kvm
-        # falls back to TCG software emulation: much slower, but it still boots
-        # and validates rather than hard-failing the build.
-        - name: Probe whether the build host can use KVM acceleration
-          ansible.builtin.command:
-            cmd: test -r /dev/kvm -a -w /dev/kvm
-          register: kvm_probe
-          changed_when: false
-          failed_when: false
-
-        - name: Select the QEMU acceleration flags
-          ansible.builtin.set_fact:
-            qemu_accel: "{{ '-enable-kvm -cpu host' if kvm_probe.rc == 0 else '-accel tcg -cpu max' }}"
-
-        - name: Warn when falling back to software emulation
-          ansible.builtin.debug:
-            msg: >-
-              /dev/kvm is not accessible; booting the validation VM under TCG
-              software emulation, which is significantly slower than KVM.
-          when: kvm_probe.rc != 0
 
         # BIOS/MBR image (vm growroot) boots on QEMU's default SeaBIOS, so no
         # OVMF firmware is needed. Daemonize and record the pid so the always:

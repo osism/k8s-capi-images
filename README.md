@@ -163,9 +163,10 @@ The VM runs every other gossfile of upstream's `goss.yaml`.
 
 The image boots under QEMU with KVM acceleration where the node exposes
 `/dev/kvm` (`playbooks/validate.yml` widens its permissions right before the
-boot), falling back to TCG software emulation otherwise. The goss spec is re-cloned from
-image-builder at the same `DIB_K8S_IMAGE_BUILDER_REF` the build uses (it is not
-vendored), and the `goss` binary is pinned to `0.3.23` and verified by checksum,
+boot), falling back to TCG software emulation where the node has no `/dev/kvm`.
+A `/dev/kvm` that exists but stays inaccessible fails the validation. The goss
+spec is re-cloned from image-builder at the same `DIB_K8S_IMAGE_BUILDER_REF` the
+build uses (it is not vendored), and the `goss` binary is pinned to `0.3.23` and verified by checksum,
 matching how the build already pins and hashes its inputs.
 
 A failed assertion fails the job, so a change whose image diverges from what
