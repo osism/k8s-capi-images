@@ -434,5 +434,86 @@ class MergeTest(BuildSbomTestCase):
         self.assertEqual(self.output.read_text(), json.dumps(bom, indent=2) + "\n")
 
 
+def location(path):
+    """Return the syft property that records where a package was found."""
+    return {"name": "syft:location:0:path", "value": path}
+
+
+KUBELET = {
+    "type": "library",
+    "name": "kubelet",
+    "purl": "pkg:deb/ubuntu/kubelet@1.37.1-1.1?arch=amd64",
+    "properties": [location("/var/lib/dpkg/status.d/kubelet")],
+}
+GO_MODULE = {
+    "type": "library",
+    "name": "github.com/containerd/containerd/v2",
+    "purl": "pkg:golang/github.com/containerd/containerd/v2@v2.3.2",
+    "properties": [{"name": "syft:package:language", "value": "go"}, location("/usr/local/bin/containerd")],
+}
+# A package of an unpacked image layer: the playbook's exclude keeps these
+# out of the host scan, so one at the top level means the exclude failed.
+LAYER_PACKAGE = {
+    "type": "library",
+    "name": "iptables",
+    "purl": "pkg:deb/debian/iptables@1.8.9-2",
+    "properties": [location("/var/lib/containerd/io.containerd.snapshotter.v1.overlayfs/snapshots/7/fs/var/lib/dpkg/status")],
+}
+
+
+class CheckTest(BuildSbomTestCase):
+    """The check subcommand verifies that the SBOM lists what it documents."""
+
+    def run_check(self, components):
+        """Run check on an SBOM with the given top-level components."""
+        bom = dict(HOST_BOM, components=list(components))
+        return self.run_script("check", self.write("sbom.cdx.json", bom))
+
+    def test_check_accepts_an_sbom_with_kubelet_and_go_modules(self):
+        self.assertEqual(self.run_check([KUBELET, GO_MODULE]), (0, "", ""))
+
+    def test_check_ignores_nested_container_packages(self):
+        container = {"type": "container", "name": "registry.k8s.io/kube-proxy", "components": [LAYER_PACKAGE]}
+
+        self.assertEqual(self.run_check([KUBELET, GO_MODULE, container]), (0, "", ""))
+
+    def test_check_matches_kubelet_of_any_distribution_namespace(self):
+        kubelet = dict(KUBELET, purl="pkg:deb/debian/kubelet@1.37.1-1.1")
+
+        self.assertEqual(self.run_check([kubelet, GO_MODULE])[0], 0)
+
+    def test_check_does_not_take_a_kubelet_prefix_for_kubelet(self):
+        kubelet_tools = dict(KUBELET, purl="pkg:deb/ubuntu/kubelet-tools@1.0")
+
+        code, _, stderr = self.run_check([kubelet_tools, GO_MODULE])
+
+        self.assertEqual(code, 1)
+        self.assertIn("no kubelet package", stderr)
+
+    def test_check_reports_every_problem_at_once(self):
+        code, stdout, stderr = self.run_check([LAYER_PACKAGE])
+
+        self.assertEqual((code, stdout), (1, ""))
+        sbom = self.tmp / "sbom.cdx.json"
+        self.assertEqual(
+            stderr,
+            f"ERROR: {sbom} lists no kubelet package (pkg:deb/<namespace>/kubelet@) at the top level; "
+            "lists no Go module (pkg:golang/) at the top level; "
+            "lists 1 top-level package(s) found under /var/lib/containerd/, e.g. "
+            f"{LAYER_PACKAGE['properties'][0]['value']}\n",
+        )
+
+    def test_check_tolerates_components_without_purl_or_properties(self):
+        bare = {"type": "file", "name": "/etc/os-release"}
+
+        self.assertEqual(self.run_check([bare, KUBELET, GO_MODULE]), (0, "", ""))
+
+    def test_check_rejects_a_document_that_is_not_a_cyclonedx_bom(self):
+        code, _, stderr = self.run_script("check", self.write("sbom.cdx.json", {"components": []}))
+
+        self.assertEqual(code, 1)
+        self.assertEqual(stderr, f"ERROR: {self.tmp}/sbom.cdx.json is not a CycloneDX BOM\n")
+
+
 if __name__ == "__main__":
     unittest.main()
