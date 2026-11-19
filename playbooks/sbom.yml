@@ -29,6 +29,9 @@
     project_dir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}"
     bucket_url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images
     bucket_remote: s3:osism/openstack-k8s-capi-images
+    # Where playbooks/build.yml writes the rclone configuration: outside the
+    # source tree, written anew after the build.
+    rclone_config: "{{ ansible_user_dir }}/.rclone.conf"
     # Object keys of the two names playbooks/build.yml publishes the image
     # under. The checksum of an image is <key>.CHECKSUM, its SBOM <key>.cdx.json.
     series_image_key: "{{ image_dir }}/{{ series_basename }}.qcow2"
@@ -136,7 +139,7 @@
               - deletefile
               - "{{ bucket_remote }}/{{ series_image_key }}.cdx.json"
           environment:
-            RCLONE_CONFIG: "{{ project_dir }}/.rclone.conf"
+            RCLONE_CONFIG: "{{ rclone_config }}"
           when: stale_series_sbom.status == 200
           changed_when: true
 
@@ -486,7 +489,7 @@
               - "{{ item.item.sbom }}"
               - "{{ bucket_remote }}/{{ item.item.key }}.cdx.json"
           environment:
-            RCLONE_CONFIG: "{{ project_dir }}/.rclone.conf"
+            RCLONE_CONFIG: "{{ rclone_config }}"
           loop: "{{ published_checksums.results }}"
           loop_control:
             label: "{{ item.item.key }}"
