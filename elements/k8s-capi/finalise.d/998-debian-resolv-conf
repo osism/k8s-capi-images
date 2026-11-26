@@ -1,0 +1,23 @@
+#!/bin/bash
+# Runs in the chroot at the end of DIB's finalise phase, after 99-k8s-capi-cleanup
+# and 40-update-apt-for-bootloader, which still need DNS in the chroot.
+#
+# DIB copies the build host's /etc/resolv.conf into the chroot and restores the
+# one from the base install at the end, unless /etc/resolv.conf is a symlink.
+# Built on a host with systemd-resolved, that file names the stub resolver
+# 127.0.0.53. Ubuntu images ship systemd-resolved, so the stub answers. Debian 13
+# has it in a separate package, installed through package-installs.yaml, and
+# nothing makes /etc/resolv.conf point at it. The node then boots without DNS and
+# containerd cannot resolve any registry.
+#
+# Point /etc/resolv.conf at the stub like Ubuntu does. As a symlink DIB keeps it.
+
+if [ "${DIB_DEBUG_TRACE:-0}" -gt 0 ]; then
+    set -x
+fi
+set -euo pipefail
+
+if [ "${DISTRO_NAME:-}" = debian ]; then
+    ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
+    systemctl enable systemd-resolved.service
+fi

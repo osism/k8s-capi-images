@@ -19,3 +19,8 @@ python3-venv:
 # debian/install.d/10-cloud-opinions installs netplan.io for trixie.
 netplan.io:
   when: DISTRO_NAME = debian
+# Debian 13 ships systemd-resolved as a separate package. Without it nothing
+# answers on the 127.0.0.53 stub in /etc/resolv.conf, see
+# finalise.d/998-debian-resolv-conf.
+systemd-resolved:
+  when: DISTRO_NAME = debian
