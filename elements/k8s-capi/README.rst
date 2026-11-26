@@ -266,6 +266,13 @@ The entry can go once DIB's ``debian/install.d/10-cloud-opinions`` installs
 ``finalise.d/999-ensure-machine-id`` also covers the missing
 ``/etc/machine-id`` on Debian (kubernetes-sigs/image-builder#2164).
 
+``package-installs.yaml`` also adds ``systemd-resolved`` on Debian, which
+Debian 13 ships as a separate package, and
+``finalise.d/998-debian-resolv-conf`` links ``/etc/resolv.conf`` to its stub
+resolver. DIB copies the build host's ``/etc/resolv.conf`` (127.0.0.53) into
+the image and keeps it unless it is a symlink. Without a resolver behind that
+address the node boots without DNS and containerd cannot resolve any registry.
+
 Archive signature check
 -----------------------
 
