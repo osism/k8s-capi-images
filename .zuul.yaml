@@ -255,6 +255,13 @@
         - k8s-capi-images-build-v1.36
         - k8s-capi-images-build-v1.37
         - k8s-capi-images-build-v1.37-debian
+    periodic-daily:
+      jobs:
+        - k8s-capi-images-publish-v1.34
+        - k8s-capi-images-publish-v1.35
+        - k8s-capi-images-publish-v1.36
+        - k8s-capi-images-publish-v1.37
+        - k8s-capi-images-publish-v1.37-debian
     post:
       jobs:
         - k8s-capi-images-publish-v1.34:
